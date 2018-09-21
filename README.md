@@ -1,4 +1,4 @@
-# PBCOperationSpider
+# Nicholas
 * <strong>EN:Chinese A-share Market quantitative investment system. Using Scrapy to crawl data and Django ORM to store data to database(Mysql used). We get data from sina, yahoo and some other finance web site. Now the system is under developing
 * <strong>CN:</strong>中国A股量化投资系统, 使用Scrapy爬取数据，使用Django ORM模型存储数据.目前从新浪财经，雅虎财经和其他相关的财经网站中获取数据.系统目前正在开发中...
 
