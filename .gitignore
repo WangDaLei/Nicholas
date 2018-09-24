@@ -108,3 +108,6 @@ celerybeat*
 
 # Django
 migrations/
+
+# config files
+config.py

@@ -1,11 +1,14 @@
 from datetime import datetime, date, timedelta
+import requests
 import smtplib
 from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.header import Header
 from dateutil.relativedelta import relativedelta
 from .models import  ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
-                        StockBonusHistory, StockAllotmentHistory
+                        StockBonusHistory, StockAllotmentHistory, StockInfo
+from stock_project.config import mail_hostname, mail_username, mail_password,\
+                                mail_encoding, mail_from, mail_to
 
 
 def get_stock_name_code(stock):
@@ -36,7 +39,7 @@ def get_stock_info():
                     str(one.change_target) + "\n")
         else:
             pass
-    return info
+    return "### 股票状态变化\n```\n" + info + "```\n"
 
 def get_pre_capital_amount(stock):
     pre_capital_amount = CapitalStockAmountHistory.objects.filter(stock=stock).order_by('-generated_time')
@@ -56,7 +59,7 @@ def get_capital_amount():
         info += (get_stock_name_code(one.stock) + "由于" + str(one.reason) + " 股本数量由" +\
                     get_pre_capital_amount(one.stock) + "万股变为" + str(one.num) +"万股, 改变的时间为:"\
                     + str(one.change_date) + "\n")
-    return info
+    return "### 股本变化\n```\n" + info + "```\n"
 
 def get_pre_finance(stock):
     pre_capital_amount = FinanceHistory.objects.filter(stock=stock).order_by('-date')
@@ -86,7 +89,7 @@ def get_finance():
             info += (get_stock_name_code(one.stock) + "首次发布财报: 每股净资产为" + str(one.per_share_net_asset)\
                         + " 总资产为" + str(one.total_asset) + " 总债务为" + str(one.total_liabilities)\
                         + " 营业收入为" + str(one.business_income) + " 总利润为" + str(one.net_profit) + "\n")
-    return info
+    return "### 公司财报\n```\n" + info + "```\n"
 def get_bonus_allot():
     info = ""
     start_time = datetime.combine(date.today(), datetime.min.time())
@@ -105,19 +108,19 @@ def get_bonus_allot():
                     + " 价格" + str(one.allotment_price) + " 基数(万股)" + str(one.allotment_capital_base)\
                     + " 公布日期" + str(one.public_date) + " 除权日期" + str(one.exright_date)\
                     + "记录日期" + str(one.record_date) + "\n")
-    return info
+    return "### 公司分红信息\n```\n" + info + "```\n"
 
 def send_email(info):
 
     mail_info = {
-        "hostname": "smtp.qq.com",
-        "username": "363225484",
-        "password": "cmifnmacaqeabjaj",
-        "mail_encoding": "utf-8"
+        "hostname": mail_hostname,
+        "username": mail_username,
+        "password": mail_password,
+        "mail_encoding": mail_encoding
     }
 
-    mail_info["from"] = "363225484@qq.com"
-    mail_info["to"] = ["wangcppclei@gmail.com","363225484@qq.com"]
+    mail_info["from"] = mail_from
+    mail_info["to"] = mail_to
     mail_info["mail_subject"] = "Daily Stock"
     mail_info["mail_text"] = info
 
@@ -132,3 +135,18 @@ def send_email(info):
 
     smtp.sendmail(mail_info["from"], mail_info["to"], msg.as_string())
     smtp.quit()
+
+# def crawl_stock_trade_info():
+#     stock_all = StockInfo.objects.all()
+#     url = 'https://query2.finance.yahoo.com/v8/finance/chart/%s.%s?period1=946656000&period2=1536768000&interval=1d'
+#     for one in stock_all:
+#         code = one.code
+#         print(code)
+#         if code.startswith('6'):
+#             url_real = url%(code, 'SS')
+#         else:
+#             url_real = url%(code, 'SZ')
+#         res = requests.get(url_real)
+#         file = open('data/'+str(code) + ".txt", 'w')
+#         file.write(res.text)
+#         file.close()
