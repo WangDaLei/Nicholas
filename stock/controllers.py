@@ -1,6 +1,7 @@
 from datetime import datetime, date, timedelta
 import requests
 import smtplib
+import mistune
 from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.header import Header
@@ -111,6 +112,7 @@ def get_bonus_allot():
     return "### 公司分红信息\n```\n" + info + "```\n"
 
 def send_email(info):
+    info = mistune.markdown(info, escape=True, hard_wrap=True)
 
     mail_info = {
         "hostname": mail_hostname,
@@ -128,7 +130,7 @@ def send_email(info):
     smtp.ehlo(mail_info["hostname"])
     smtp.login(mail_info["username"], mail_info["password"])
 
-    msg = MIMEText(mail_info["mail_text"], "plain", mail_info["mail_encoding"])
+    msg = MIMEText(mail_info["mail_text"], "html", mail_info["mail_encoding"])
     msg["Subject"] = Header(mail_info["mail_subject"], mail_info["mail_encoding"])
     msg["from"] = mail_info["from"]
     msg["to"] = ",".join(mail_info["to"])
