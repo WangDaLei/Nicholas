@@ -46,7 +46,7 @@ def get_stock_info():
         return info
 
 def get_pre_capital_amount(stock):
-    pre_capital_amount = CapitalStockAmountHistory.objects.filter(stock=stock).order_by('-generated_time')
+    pre_capital_amount = CapitalStockAmountHistory.objects.filter(stock=stock).order_by('-change_date')
     if pre_capital_amount.count() <= 1:
         return str(0)
     else:
