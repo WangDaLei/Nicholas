@@ -26,24 +26,6 @@ from tabula import read_pdf
 def get_stock_name_code(stock):
     return str(stock.name) + "(" + str(stock.code) + ") "
 
-def get_trade_amount_sum():
-    today = date.today()
-    for i in range(30):
-        one_date = today + timedelta(days=-1*(i+1))
-        sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='上证交易所')\
-                        .aggregate(num=Sum('trade_amount')).get('num') or 0
-        sum_amount = round(sum_amount/100000000, 2)
-        if sum_amount:
-            print('上证交易所', one_date, sum_amount)
-
-    for i in range(30):
-        one_date = today + timedelta(days=-1*(i+1))
-        sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='深证交易所')\
-                        .aggregate(num=Sum('trade_amount')).get('num') or 0
-        sum_amount = round(sum_amount/100000000, 2)
-        if sum_amount:
-            print('深证交易所', one_date, sum_amount)
-
 def get_stock_info():
     change_history = ChangeHistory.objects.filter(generated_time=date.today()).order_by('stock_id')
 
