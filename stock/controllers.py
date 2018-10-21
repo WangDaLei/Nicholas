@@ -1,3 +1,9 @@
+# -*-coding:utf8-*-
+
+import os
+import re
+import json
+
 from datetime import datetime, date, timedelta
 import requests
 import smtplib
@@ -7,10 +13,15 @@ from email.mime.text import MIMEText
 from email.header import Header
 from dateutil.relativedelta import relativedelta
 from .models import  ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
-                        StockBonusHistory, StockAllotmentHistory, StockInfo
+                        StockBonusHistory, StockAllotmentHistory, StockInfo,\
+                        TradeRecord
 from stock_project.config import mail_hostname, mail_username, mail_password,\
                                 mail_encoding, mail_from, mail_to
+from django.db.models import Sum
 
+from scrapy.selector import Selector
+from PyPDF2 import PdfFileReader
+from tabula import read_pdf
 
 def get_stock_name_code(stock):
     return str(stock.name) + "(" + str(stock.code) + ") "
@@ -123,6 +134,24 @@ def get_bonus_allot():
     else:
         return info
 
+def get_trade_amount_sum():
+    today = date.today()
+    for i in range(30):
+        one_date = today + timedelta(days=-1*(i+1))
+        sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='上证交易所')\
+                        .aggregate(num=Sum('trade_amount')).get('num') or 0
+        sum_amount = round(sum_amount/100000000, 2)
+        if sum_amount:
+            print('上证交易所', one_date, sum_amount)
+
+    for i in range(30):
+        one_date = today + timedelta(days=-1*(i+1))
+        sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='深证交易所')\
+                        .aggregate(num=Sum('trade_amount')).get('num') or 0
+        sum_amount = round(sum_amount/100000000, 2)
+        if sum_amount:
+            print('深证交易所', one_date, sum_amount)
+
 def send_email(info):
     info = mistune.markdown(info, escape=True, hard_wrap=True)
 
@@ -150,17 +179,227 @@ def send_email(info):
     smtp.sendmail(mail_info["from"], mail_info["to"], msg.as_string())
     smtp.quit()
 
-# def crawl_stock_trade_info():
-#     stock_all = StockInfo.objects.all()
-#     url = 'https://query2.finance.yahoo.com/v8/finance/chart/%s.%s?period1=946656000&period2=1536768000&interval=1d'
-#     for one in stock_all:
-#         code = one.code
-#         print(code)
-#         if code.startswith('6'):
-#             url_real = url%(code, 'SS')
-#         else:
-#             url_real = url%(code, 'SZ')
-#         res = requests.get(url_real)
-#         file = open('data/'+str(code) + ".txt", 'w')
-#         file.write(res.text)
-#         file.close()
+def crawl_block_from_CSRC():
+    url_base = "http://www.csrc.gov.cn/pub/newsite/scb/ssgshyfljg/"
+    req = requests.get(url_base)
+
+    if req.encoding == 'ISO-8859-1':
+        encodings = requests.utils.get_encodings_from_content(req.text)
+        if encodings:
+            encoding = encodings[0]
+        else:
+            encoding = req.apparent_encoding
+
+        global encode_content
+        encode_content = req.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
+
+
+        sel = Selector(text=encode_content)
+        name_list = sel.xpath('//div/div/div[re:test(text(), "上市公司行业分类结果")]\
+                        /parent::*/following-sibling::*/ul/li/a//text()').extract()
+        
+        url_list = sel.xpath('//div/div/div[re:test(text(), "上市公司行业分类结果")]\
+                        /parent::*/following-sibling::*/ul/li/a/@href').extract()
+
+        date_list = sel.xpath('//div/div/div[re:test(text(), "上市公司行业分类结果")]\
+                        /parent::*/following-sibling::*/ul/li/span//text()').extract()
+
+        if len(date_list):
+            sign = 0
+            max_date = date_list[0]
+            for i in range(len(date_list)):
+                if date_list[i] > max_date:
+                    max_date = date_list[i]
+        else:
+            return False, None, None
+
+        name = name_list[sign]
+        url = url_list[sign]
+
+        if os.path.exists('CSRC/' + str(max_date)):
+            return False, None, None
+        else:
+            os.makedirs('CSRC/' + str(max_date))
+            url = url_base + url_list[sign][2:]
+            req = requests.get(url)
+
+            if req.encoding == 'ISO-8859-1':
+                encodings = requests.utils.get_encodings_from_content(req.text)
+                if encodings:
+                    encoding = encodings[0]
+                else:
+                    encoding = req.apparent_encoding
+
+                encode_content1 = req.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
+                sel = Selector(text=encode_content1)
+                pdf_list = sel.xpath('//a[re:test(text(), "%s")]//@href'%(name)).extract()
+                pdf_name = pdf_list[0]
+                pdf_url = url.rsplit('/',1)[0] + pdf_name[1:]
+
+                req =  requests.get(pdf_url)
+                file_pdf = open('CSRC/' + str(max_date) + "/" + pdf_name[2:], 'wb')
+                file_pdf.write(req.content)
+                file_pdf.close()
+                return True, max_date, pdf_name[2:]
+            return False, None, None
+
+def parse_CRSC_PDF(date, name):
+
+    pages = PdfFileReader(open('./CSRC/' + date + '/' + name, 'rb')).getNumPages()
+
+    pre_block = ""
+    pre_small_block = ""
+    count = 0
+
+    json_dict = {}
+
+    code_list = []
+    small_block_dict = {}
+
+    for i in range(pages):
+        content = read_pdf('./CSRC/' + date + '/' + name, pages=i+1, multiple_tables=True)
+        content_list = re.split(r'[ \n]+', str(content))
+
+        for j in range(len(content_list)):
+            if j < 12:
+                continue
+            if j % 6 == 1:
+                if not content_list[j].endswith(')') and content_list[j] != 'NaN':
+                    if content_list[j+7] == 'NaN' and content_list[j+6] != 'NaN':
+                        big_block = content_list[j] + content_list[j+6]
+                        m = 2
+                        while not big_block.endswith(')'):
+                            if content_list[6*m +j + 1] == 'NaN' and content_list[6*m + j] != 'NaN':
+                                big_block += content_list[6*m + j]
+                            else:
+                                break
+                            m += 1
+                    else:
+                        big_block = content_list[j]
+                    if pre_block.find(big_block) == -1:
+                        pre_block = big_block
+                        json_dict[pre_block] = {}
+
+                elif content_list[j].endswith(')'):
+                    big_block = content_list[j]
+                    if pre_block.find(big_block) == -1:
+                        pre_block = big_block
+                        json_dict[pre_block] = {}
+
+                else:
+                    pass
+            if j % 6 == 3:
+                if content_list[j] != 'NaN':
+                    if content_list[j+5] == 'NaN' and content_list[j+6] != 'NaN':
+                        small_block = content_list[j] + content_list[j+6]
+                        m = 2
+                        while not big_block.endswith(')'):
+                            if content_list[6*m +j - 1] == 'NaN' and content_list[6*m + j] != 'NaN':
+                                small_block += content_list[6*m + j]
+                            else:
+                                break
+                            m += 1
+                    else:
+                        small_block = content_list[j]
+                    if pre_small_block.find(small_block) == -1:
+                        pre_small_block = small_block
+                        json_dict[pre_block][pre_small_block] = []
+                else:
+                    pass
+            if j % 6 == 4:
+                if content_list[j] != 'NaN':
+                    code = content_list[j]
+                    json_dict[pre_block][pre_small_block].append(code)
+                    if code.startswith('6') or code.startswith('0'):
+                        count += 1
+                else:
+                    pass
+
+    with open('./CSRC/' + date + '/' + "re.json", 'w') as f:
+        f.write(json.dumps(json_dict, ensure_ascii=False))
+
+def repair_json_files(date):
+    with open('./CSRC/' + date + '/' + "re.json", 'r') as f:
+        content = json.loads(f.read())
+    with open('./CSRC/base/template.json', 'r') as f:
+        content_base = json.loads(f.read())
+
+    for one in content:
+        print(one)
+
+    print("\nbase:")
+    for one in content_base:
+        print(one)
+
+
+    base_big_block_list = []
+    for key in content_base:
+        base_big_block_list.append(key)
+
+    for key in content:
+        if key in base_big_block_list:
+            continue
+        else:
+            for one in base_big_block_list:
+                if one.find(key) != -1:
+                    content[one] = content[key]
+                    content.pop(key)
+                    break
+                else:
+                    continue
+
+    base_small_block_list = []
+    for key in content_base:
+        small_block = content_base[key]
+        for one in small_block:
+            base_small_block_list.append(one)
+
+    for key in content:
+        for one in content[key]:
+            if one in base_small_block_list:
+                continue
+            else:
+                for small in base_small_block_list:
+                    if small.find(one) != -1:
+                        content[key][small] = content[key][one]
+                        content[key].pop(one)
+                        break
+    with open('./CSRC/' + date + '/' + "re.json", 'w') as f:
+        f.write(json.dumps(content, ensure_ascii=False))
+
+def update_block(date):
+    with open('./CSRC/' + date + '/' + "re.json", 'r') as f:
+        content = json.loads(f.read())
+
+    for key in content:
+        for small in content[key]:
+            code_list = content[key][small]
+            for code in code_list:
+                stock_set = StockInfo.objects.filter(code=code)
+                if stock_set:
+                    one = stock_set.first()
+                    if one.big_block != key:
+                        ChangeHistory.objects.create(stock=one, change_source=one.big_block,\
+                                                change_target=key, field='big_block',\
+                                                generated_time=date.today())
+                        one.big_block = key
+                        one.save()
+
+                    if one.block != small:
+                        ChangeHistory.objects.create(stock=one, change_source=one.block,\
+                                                change_target=small, field='block',\
+                                                generated_time=date.today())
+                        one.block = small
+                        one.save()
+
+
+
+
+
+
+
+
+
+
+
+

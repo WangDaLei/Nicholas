@@ -72,8 +72,9 @@ class StochBlockSpider(scrapy.Spider):
         for one in stock_set:
             self.all_stock_code.append(one.code)
         for one in self.all_stock_code:
-            url_block = "http://vip.stock.finance.sina.com.cn/corp/go.php/vCI_CorpOtherInfo/stockid/%s/menu_num/2.phtml"%(str(one))
-            yield scrapy.Request(url_block, self.parse_block)
+            if one.block == "":
+                url_block = "http://vip.stock.finance.sina.com.cn/corp/go.php/vCI_CorpOtherInfo/stockid/%s/menu_num/2.phtml"%(str(one))
+                yield scrapy.Request(url_block, self.parse_block)
             
             url_pro = "http://vip.stock.finance.sina.com.cn/corp/go.php/vCI_CorpInfo/stockid/%s.phtml"%(str(one))
             yield scrapy.Request(url_pro, self.parse_pro)
