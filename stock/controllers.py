@@ -385,8 +385,8 @@ def repair_json_files(date):
     with open('./CSRC/' + date + '/' + "re.json", 'w') as f:
         f.write(json.dumps(content, ensure_ascii=False))
 
-def update_block(date):
-    with open('./CSRC/' + date + '/' + "re.json", 'r') as f:
+def update_block(file_date):
+    with open('./CSRC/' + file_date + '/' + "re.json", 'r') as f:
         content = json.loads(f.read())
 
     for key in content:
