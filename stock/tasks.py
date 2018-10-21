@@ -7,7 +7,7 @@ from datetime import timedelta, datetime, date
 from .controllers import get_stock_info, get_capital_amount,\
                             get_finance, get_bonus_allot, send_email,\
                             crawl_block_from_CSRC, parse_CRSC_PDF,\
-                            repair_json_files, update_block
+                            repair_json_files, update_block, get_trade_amount_sum
 
 
 @periodic_task(run_every=crontab(hour=7, minute=35))
@@ -48,3 +48,7 @@ def crawl_stock_daily_info():
         send_email('\n'.join(info_list))
 
     os.system('cd stock_spider && scrapy crawl stock_trade_record_task_spider')
+
+    info = get_trade_amount_sum()
+    if info:
+        send_email(info)

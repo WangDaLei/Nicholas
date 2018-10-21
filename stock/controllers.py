@@ -154,13 +154,16 @@ def get_bonus_allot():
 
 def get_trade_amount_sum():
     today = date.today()
+    shang_str = ""
+    shen_str = ""
+    big_block_str = ""
     for i in range(30):
         one_date = today + timedelta(days=-1*(i+1))
         sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='上证交易所')\
                         .aggregate(num=Sum('trade_amount')).get('num') or 0
         sum_amount = round(sum_amount/100000000, 2)
         if sum_amount:
-            print('上证交易所', one_date, sum_amount)
+            shang_str += '上证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
 
     for i in range(30):
         one_date = today + timedelta(days=-1*(i+1))
@@ -168,7 +171,30 @@ def get_trade_amount_sum():
                         .aggregate(num=Sum('trade_amount')).get('num') or 0
         sum_amount = round(sum_amount/100000000, 2)
         if sum_amount:
-            print('深证交易所', one_date, sum_amount)
+            shang_str += '深证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
+
+    big_block_list = StockInfo.objects.values_list('big_block').distinct()
+    for one in big_block_list:
+        for i in range(7):
+            one_date = today + timedelta(days=-1*(i+1))
+            sum_amount = TradeRecord.objects.filter(date=one_date, stock__big_block=one)\
+                            .aggregate(num=Sum('trade_amount')).get('num') or 0
+            sum_amount = round(sum_amount/100000000, 2)
+            if sum_amount:
+                big_block_str += str(one) + ':' + str(one_date) + " " + str(sum_amount) + "亿\n"
+        big_block_str += '\n'
+
+    if not shang_str and not shen_str and not big_block_str:
+        return ""
+    else:
+        info = "### 交易量统计\n"
+        if shang_str:
+            info += "#### 上证\n```\n" + shang_str + "```\n"
+        if shen_str:
+            info += "#### 深证\n```\n" + shen_str + "```\n"
+        if big_block_str:
+            info += "#### 分模块统计\n```\n" + big_block_str + "```\n"
+        return info
 
 def send_email(info):
     info = mistune.markdown(info, escape=True, hard_wrap=True)
