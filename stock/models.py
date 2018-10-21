@@ -12,6 +12,7 @@ class StockInfo(models.Model):
     name = models.CharField(max_length=20, default="")
     code = models.CharField(max_length=10)
     stock_exchange = models.CharField(choices=STOCK_EXCHANGE_CHOICES, max_length=16)
+    big_block = models.CharField(max_length=40, default="")
     block = models.CharField(max_length=40, default="")
     ownership = models.CharField(max_length=30, default="")
     found_date = models.DateField(null=True, blank=True)
