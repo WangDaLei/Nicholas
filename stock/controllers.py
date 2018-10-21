@@ -165,13 +165,13 @@ def get_trade_amount_sum():
         #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
         sum_amount = round(sum_amount/100000000, 2)
         if sum_amount:
-            shang_str += '深证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
+            shen_str += '深证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
 
     big_block_list = StockInfo.objects.values_list('big_block').distinct()
     for one in big_block_list:
         for i in range(7):
             one_date = today + timedelta(days=-1*(i+1))
-            stocks = StockInfo.objects.filter(big_block=one)
+            stocks = StockInfo.objects.filter(big_block=one[0])
             sum_amount = 0.0
             for one_stock in stocks:
                 trade_one = TradeRecord.objects.filter(date=one_date, code=one_stock.code)
