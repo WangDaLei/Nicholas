@@ -342,14 +342,6 @@ def repair_json_files(date):
     with open('./CSRC/base/template.json', 'r') as f:
         content_base = json.loads(f.read())
 
-    for one in content:
-        print(one)
-
-    print("\nbase:")
-    for one in content_base:
-        print(one)
-
-
     base_big_block_list = []
     for key in content_base:
         base_big_block_list.append(key)
