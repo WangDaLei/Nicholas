@@ -169,6 +169,8 @@ def get_trade_amount_sum():
 
     big_block_list = StockInfo.objects.values_list('big_block').distinct()
     for one in big_block_list:
+        if str(one[0]) == '':
+            continue
         for i in range(7):
             one_date = today + timedelta(days=-1*(i+1))
             stocks = StockInfo.objects.filter(big_block=one[0])
@@ -182,7 +184,7 @@ def get_trade_amount_sum():
             #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
             sum_amount = round(sum_amount/100000000, 2)
             if sum_amount:
-                big_block_str += str(one) + ':' + str(one_date) + " " + str(sum_amount) + "亿\n"
+                big_block_str += str(one[0]) + ':' + str(one_date) + " " + str(sum_amount) + "亿\n"
         big_block_str += '\n'
 
     if not shang_str and not shen_str and not big_block_str:
