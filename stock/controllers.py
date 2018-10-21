@@ -145,7 +145,8 @@ def get_trade_amount_sum():
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
-            sum_amount += trade_one.trade_amount
+            if trade_one:
+                sum_amount += trade_one.first().trade_amount
         # sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='上证交易所')\
         #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
         sum_amount = round(sum_amount/100000000, 2)
@@ -158,7 +159,8 @@ def get_trade_amount_sum():
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
-            sum_amount += trade_one.trade_amount
+            if trade_one:
+                sum_amount += trade_one.first().trade_amount
         # sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='深证交易所')\
         #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
         sum_amount = round(sum_amount/100000000, 2)
@@ -173,7 +175,8 @@ def get_trade_amount_sum():
             sum_amount = 0.0
             for one_stock in stocks:
                 trade_one = TradeRecord.objects.filter(date=one_date, code=one_stock.code)
-                sum_amount += trade_one.trade_amount
+                if trade_one:
+                    sum_amount += trade_one.first().trade_amount
 
             # sum_amount = TradeRecord.objects.filter(date=one_date, stock__big_block=one)\
             #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
