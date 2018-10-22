@@ -72,7 +72,8 @@ class StochBlockSpider(scrapy.Spider):
         for one in stock_set:
             self.all_stock_code.append(one.code)
         for one in self.all_stock_code:
-            if one.block == "":
+            stock_one = StockInfo.objects.get(code=one)
+            if stock_one.block == "":
                 url_block = "http://vip.stock.finance.sina.com.cn/corp/go.php/vCI_CorpOtherInfo/stockid/%s/menu_num/2.phtml"%(str(one))
                 yield scrapy.Request(url_block, self.parse_block)
             
