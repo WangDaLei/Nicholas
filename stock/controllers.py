@@ -141,7 +141,7 @@ def get_trade_amount_sum():
     big_block_str = ""
     for i in range(30):
         stocks = StockInfo.objects.filter(stock_exchange='上证交易所')
-        one_date = today + timedelta(days=-1*(i+1))
+        one_date = today + timedelta(days=-1*i)
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
@@ -155,7 +155,7 @@ def get_trade_amount_sum():
 
     for i in range(30):
         stocks = StockInfo.objects.filter(stock_exchange='深证交易所')
-        one_date = today + timedelta(days=-1*(i+1))
+        one_date = today + timedelta(days=-1*i)
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
@@ -172,7 +172,7 @@ def get_trade_amount_sum():
         if str(one[0]) == '':
             continue
         for i in range(7):
-            one_date = today + timedelta(days=-1*(i+1))
+            one_date = today + timedelta(days=-1*i)
             stocks = StockInfo.objects.filter(big_block=one[0])
             sum_amount = 0.0
             for one_stock in stocks:
