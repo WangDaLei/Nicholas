@@ -90,3 +90,15 @@ class ChangeHistory(models.Model):
 
     class Meta:
         app_label = 'stock'
+
+class IndexRecord(models.Model):
+    code = models.CharField(max_length=10)
+    name = models.CharField(max_length=20)
+    date = models.DateField()
+    open_index = models.FloatField(default=0.0)
+    highest_index = models.FloatField(default=0.0)
+    close_index = models.FloatField(default=0.0)
+    lowest_index = models.FloatField(default=0.0)
+    trade_volume = models.FloatField(default=0.0)
+    trade_amount = models.FloatField(default=0.0)
+    generated_time =models.DateTimeField(auto_now_add=True)

@@ -8,13 +8,14 @@ from datetime import datetime, date, timedelta
 import requests
 import smtplib
 import mistune
+from django.db.models import Max
 from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.header import Header
 from dateutil.relativedelta import relativedelta
 from .models import  ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
                         StockBonusHistory, StockAllotmentHistory, StockInfo,\
-                        TradeRecord
+                        TradeRecord, IndexRecord
 from stock_project.config import mail_hostname, mail_username, mail_password,\
                                 mail_encoding, mail_from, mail_to
 from django.db.models import Sum
@@ -432,3 +433,37 @@ def update_block(file_date):
                         one.save()
 
 
+def crawl_index_from_sohu():
+    url_base = "http://q.stock.sohu.com/hisHq?code=zs_%s&start=%s&end=%s"
+
+    index_code = ['000001', '399001']
+    index_name = ['上证指数', '深证指数']
+
+    for i, code in enumerate(index_code):
+        max_date = IndexRecord.objects.all().aggregate(Max('date'))['date__max']
+        if max_date:
+            start_date = max_date + timedelta(days=1)
+            start_date = str(start_date).replace('-', '')
+        else:
+            start_date = '20000101'
+
+        start_date = '20180101'
+        end_date = str(date.today()).replace('-', '')
+        url = url_base%(code, start_date, end_date)
+
+
+        req = requests.get(url)
+
+        res_list = json.loads(req.content)
+
+        if len(res_list):
+            hq = res_list[0]['hq']
+            for one in hq:
+                index,_ = IndexRecord.objects.get_or_create(code=code, name=index_name[i], date=one[0])
+                index.open_index = one[1]
+                index.highest_index = one[6]
+                index.close_index = one[2]
+                index.lowest_index = one[5]
+                index.trade_volume = one[7]
+                index.trade_amount = one[8]
+                index.save()
