@@ -440,7 +440,7 @@ def crawl_index_from_sohu():
     index_name = ['上证指数', '深证指数']
 
     for i, code in enumerate(index_code):
-        max_date = IndexRecord.objects.all().aggregate(Max('date'))['date__max']
+        max_date = IndexRecord.objects.filter(code=code).aggregate(Max('date'))['date__max']
         if max_date:
             start_date = max_date + timedelta(days=1)
             start_date = str(start_date).replace('-', '')
