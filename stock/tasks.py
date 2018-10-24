@@ -11,7 +11,7 @@ from .controllers import get_stock_info, get_capital_amount,\
                             crawl_index_from_sohu
 
 
-@periodic_task(run_every=crontab(hour=8, minute=19))
+@periodic_task(run_every=crontab(hour=7, minute=35))
 def crawl_stock_daily_info():
     os.system('cd stock_spider && scrapy crawl stock_info_spider')
 
