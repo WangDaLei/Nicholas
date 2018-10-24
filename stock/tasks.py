@@ -7,11 +7,11 @@ from datetime import timedelta, datetime, date
 from .controllers import get_stock_info, get_capital_amount,\
                             get_finance, get_bonus_allot, send_email,\
                             crawl_block_from_CSRC, parse_CRSC_PDF,\
-                            repair_json_files, update_block, get_trade_amount_sum,
+                            repair_json_files, update_block, get_trade_amount_sum,\
                             crawl_index_from_sohu
 
 
-@periodic_task(run_every=crontab(hour=7, minute=35))
+@periodic_task(run_every=crontab(hour=8, minute=19))
 def crawl_stock_daily_info():
     os.system('cd stock_spider && scrapy crawl stock_info_spider')
 
