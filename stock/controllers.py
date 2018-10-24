@@ -447,7 +447,6 @@ def crawl_index_from_sohu():
         else:
             start_date = '20000101'
 
-        start_date = '20180101'
         end_date = str(date.today()).replace('-', '')
         url = url_base%(code, start_date, end_date)
 
