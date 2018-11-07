@@ -3,6 +3,7 @@
 import os
 import re
 import json
+import copy
 
 from datetime import datetime, date, timedelta
 import requests
@@ -313,10 +314,12 @@ def parse_CRSC_PDF(date, name):
                 continue
             if j % 6 == 1:
                 if not content_list[j].endswith(')') and content_list[j] != 'NaN':
-                    if content_list[j+7] == 'NaN' and content_list[j+6] != 'NaN':
+                    if j+7 < len(content_list) and content_list[j+7] == 'NaN' and content_list[j+6] != 'NaN':
                         big_block = content_list[j] + content_list[j+6]
                         m = 2
                         while not big_block.endswith(')'):
+                            if j + 6 * m + 1 > len(content_list):
+                                break
                             if content_list[6*m +j + 1] == 'NaN' and content_list[6*m + j] != 'NaN':
                                 big_block += content_list[6*m + j]
                             else:
@@ -325,23 +328,35 @@ def parse_CRSC_PDF(date, name):
                     else:
                         big_block = content_list[j]
                     if pre_block.find(big_block) == -1:
-                        pre_block = big_block
-                        json_dict[pre_block] = {}
+                        if big_block.find(pre_block) != -1 and pre_block != "":
+                            json_dict[big_block] = copy.deepcopy(json_dict[pre_block])
+                            json_dict.pop(pre_block)
+                            pre_block = big_block
+                        else:
+                            pre_block = big_block
+                            json_dict[pre_block] = {}
 
                 elif content_list[j].endswith(')'):
                     big_block = content_list[j]
                     if pre_block.find(big_block) == -1:
-                        pre_block = big_block
-                        json_dict[pre_block] = {}
+                        if big_block.find(pre_block) != -1 and pre_block != "":
+                            json_dict[big_block] = copy.deepcopy(json_dict[pre_block])
+                            json_dict.pop(pre_block)
+                            pre_block = big_block
+                        else:
+                            pre_block = big_block
+                            json_dict[pre_block] = {}
 
                 else:
                     pass
             if j % 6 == 3:
                 if content_list[j] != 'NaN':
-                    if content_list[j+5] == 'NaN' and content_list[j+6] != 'NaN':
+                    if j+5 < len(content_list) and content_list[j+5] == 'NaN' and content_list[j+6] != 'NaN':
                         small_block = content_list[j] + content_list[j+6]
                         m = 2
                         while not big_block.endswith(')'):
+                            if 6 * m + j > len(content_list):
+                                break
                             if content_list[6*m +j - 1] == 'NaN' and content_list[6*m + j] != 'NaN':
                                 small_block += content_list[6*m + j]
                             else:
@@ -350,8 +365,13 @@ def parse_CRSC_PDF(date, name):
                     else:
                         small_block = content_list[j]
                     if pre_small_block.find(small_block) == -1:
-                        pre_small_block = small_block
-                        json_dict[pre_block][pre_small_block] = []
+                        if small_block.find(pre_small_block) != -1 and pre_small_block != "":
+                            json_dict[pre_block][small_block] = copy.deepcopy(json_dict[pre_block][pre_small_block])
+                            json_dict[pre_block].pop(pre_small_block)
+                            pre_small_block = small_block
+                        else:
+                            pre_small_block = small_block
+                            json_dict[pre_block][pre_small_block] = []
                 else:
                     pass
             if j % 6 == 4:
