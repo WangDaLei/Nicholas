@@ -590,25 +590,33 @@ def analysis_coin_price_based_coin():
 
 
 def analysis_coin_price_based_date():
-    coins = CoinInfo.objects.filter(rank__lt=50)
+    coins = CoinInfo.objects.filter(rank__lte=50)
     date_dict = {}
     date_today = date.today()
     min_date = date_today
-    average_lenth = 3
-    total = 1000000
+    average_lenth = 5
+    total = 100000
     coin_dict = {}
 
+    huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG', 'ZEC', 'BTM',
+        'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF', 'RUFF', 'HC', 'NEO', 'BSV']
+
     for one in coins:
+        if one.symbol == 'USDT' or one.symbol == 'TUSD':
+            continue
+        if one.symbol not in huobi_coin_list:
+            continue
         min_coin = CoinRecord.objects.filter(coin=one).order_by('date').first()
         date_dict[one.symbol] = min_coin.date
         if min_coin.date < min_date:
             min_date = min_coin.date
 
     min_date += timedelta(days=365)
+    min_date = date(2018, 1, 1)
 
     while min_date < date_today:
         for key in date_dict:
-            if date_dict[key] + timedelta(days=365) > min_date:
+            if date_dict[key] + timedelta(days=365) < min_date:
                 coin_record = CoinRecord.objects.filter(symbol=key, date__lte=min_date).order_by('-date')
                 if len(coin_record) < average_lenth + 1:
                     continue
@@ -616,7 +624,8 @@ def analysis_coin_price_based_date():
                 for i in range(average_lenth):
                     sum_volume += coin_record[i+1].trade_volume
                 average_volume = sum_volume / average_lenth
-                if coin_record[0].trade_volume / average_volume > 1.2 and key not in coin_dict:
+                if coin_record[0].trade_volume / average_volume > 1.5 and key not in coin_dict\
+                    and total >= 20000:
                     total -= 20000
                     coin_dict[key] = 20000/coin_record[0].close_price
                 if coin_record[0].close_price < coin_record[1].close_price and key in coin_dict:
