@@ -548,8 +548,8 @@ def craw_coin_from_coinmarket():
                     hignest_price=high_price, lowest_price=low_price, close_price=close_price,
                     trade_volume=dollar_volume, market_cap=market_cap)
 
-def analysis_coin_price():
-    coins = CoinInfo.objects.filter(rank__lt=30)
+def analysis_coin_price_based_coin():
+    coins = CoinInfo.objects.filter(rank__lt=50)
     total = 1000000
     coin_dict = {}
     average_lenth = 3
@@ -587,3 +587,45 @@ def analysis_coin_price():
                         str1 +=  key + ":" + str(round(coin_dict[key], 2)) + ' '
                     print(round(total, 2), str1)
             x += 1
+
+
+def analysis_coin_price_based_date():
+    coins = CoinInfo.objects.filter(rank__lt=50)
+    date_dict = {}
+    date_today = date.today()
+    min_date = date_today
+    average_lenth = 3
+    total = 1000000
+    coin_dict = {}
+
+    for one in coins:
+        min_coin = CoinRecord.objects.filter(coin=one).order_by('date').first()
+        date_dict[one.symbol] = min_coin.date
+        if min_coin.date < min_date:
+            min_date = min_coin.date
+
+    min_date += timedelta(days=365)
+
+    while min_date < date_today:
+        for key in date_dict:
+            if date_dict[key] + timedelta(days=365) > min_date:
+                coin_record = CoinRecord.objects.filter(symbol=key, date__lte=min_date).order_by('-date')
+                if len(coin_record) < average_lenth + 1:
+                    continue
+                sum_volume = 0.0
+                for i in range(average_lenth):
+                    sum_volume += coin_record[i+1].trade_volume
+                average_volume = sum_volume / average_lenth
+                if coin_record[0].trade_volume / average_volume > 1.2 and key not in coin_dict:
+                    total -= 20000
+                    coin_dict[key] = 20000/coin_record[0].close_price
+                if coin_record[0].close_price < coin_record[1].close_price and key in coin_dict:
+                    total += coin_dict[key] * coin_record[0].close_price
+                    coin_dict.pop(key)
+            else:
+                pass
+        str1 = ''
+        for key in coin_dict:
+            str1 +=  key + ":" + str(round(coin_dict[key], 2)) + ' '
+        print(min_date, round(total, 2), str1+'\n')
+        min_date += timedelta(days=1)
