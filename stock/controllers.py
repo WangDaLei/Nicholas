@@ -16,7 +16,7 @@ from email.header import Header
 from dateutil.relativedelta import relativedelta
 from .models import  ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
                         StockBonusHistory, StockAllotmentHistory, StockInfo,\
-                        TradeRecord, IndexRecord
+                        TradeRecord, IndexRecord, CoinInfo, CoinRecord
 from stock_project.config import mail_hostname, mail_username, mail_password,\
                                 mail_encoding, mail_from, mail_to
 from django.db.models import Sum
@@ -486,3 +486,66 @@ def crawl_index_from_sohu():
                 index.trade_volume = one[7]
                 index.trade_amount = one[8]
                 index.save()
+
+
+def get_date_from_str(str):
+    month_dict = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12}
+    try:
+        year = str.split(',')[1].strip()
+        day = str.split(',')[0].split(' ')[1].strip()
+        month = month_dict[str.split(',')[0].split(' ')[0].strip()]
+        return date(int(year), int(month), int(day))
+    except Exception as e:
+        print(e)
+        return date(2010, 1, 1)
+
+
+def get_num_from_str(str):
+    if str == '-':
+        return 0
+    return float(''.join(str.split(',')))
+
+
+def craw_coin_from_coinmarket():
+    all_coin_url = "https://s2.coinmarketcap.com/generated/search/quick_search.json"
+    coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/?start=20100101&end=20300101"
+
+    req = requests.get(all_coin_url)
+    res_list = json.loads(req.content)
+    for one in res_list:
+        name = one['name']
+        symbol = one['symbol']
+        slug = one['slug']
+        rank = one['rank']
+        coin, _ = CoinInfo.objects.get_or_create(name=name, symbol=symbol)
+        if coin.slug != slug or coin.rank != rank:
+            coin.slug = slug
+            coin.rank = rank
+            coin.save()
+
+    coins = CoinInfo.objects.all()
+    for one in coins:
+        print(one.symbol)
+        slug = one.slug
+        url = coin_trade_record_url % (slug)
+        req = requests.get(url)
+        sel = Selector(text=req.content)
+        name_list = sel.xpath('//div[re:test(@class, "table-responsive")]/table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()').extract()
+        lenth = len(name_list) // 7
+
+        for i in range(lenth):
+            date = get_date_from_str(name_list[i*7])
+            open_price = name_list[i*7 + 1]
+            high_price = name_list[i*7 + 2]
+            low_price = name_list[i*7 + 3]
+            close_price = name_list[i*7 + 4]
+            dollar_volume = get_num_from_str(name_list[i*7 + 5])
+            market_cap = get_num_from_str(name_list[i*7 + 6])
+
+            coin_record = CoinRecord.objects.filter(coin=one, date=date)
+            if not coin_record:
+                CoinRecord.objects.create(coin=one, date=date, symbol=one.symbol, open_price=open_price,
+                    hignest_price=high_price, lowest_price=low_price, close_price=close_price,
+                    trade_volume=dollar_volume, market_cap=market_cap)
+            # break
+        # break

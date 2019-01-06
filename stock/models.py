@@ -1,8 +1,8 @@
 
-from datetime import date
 from django.db import models
 
 # Create your models here.
+
 
 class StockInfo(models.Model):
     STOCK_EXCHANGE_CHOICES = (
@@ -11,7 +11,8 @@ class StockInfo(models.Model):
     )
     name = models.CharField(max_length=20, default="")
     code = models.CharField(max_length=10)
-    stock_exchange = models.CharField(choices=STOCK_EXCHANGE_CHOICES, max_length=16)
+    stock_exchange = models.CharField(
+        choices=STOCK_EXCHANGE_CHOICES, max_length=16)
     big_block = models.CharField(max_length=40, default="")
     block = models.CharField(max_length=40, default="")
     ownership = models.CharField(max_length=30, default="")
@@ -24,14 +25,16 @@ class StockInfo(models.Model):
     class Meta:
         app_label = 'stock'
 
+
 class CapitalStockAmountHistory(models.Model):
     stock = models.ForeignKey('StockInfo', on_delete=models.CASCADE)
     code = models.CharField(max_length=10)
     change_date = models.DateField(blank=True)
     public_date = models.DateField(blank=True, default="1970-1-1")
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
     reason = models.CharField(max_length=100, default="")
     num = models.FloatField(default=0.0)
+
 
 class FinanceHistory(models.Model):
     stock = models.ForeignKey('StockInfo', on_delete=models.CASCADE)
@@ -42,7 +45,7 @@ class FinanceHistory(models.Model):
     total_liabilities = models.FloatField(default=0.0)
     business_income = models.FloatField(default=0.0)
     net_profit = models.FloatField(default=0.0)
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
 
 
 class TradeRecord(models.Model):
@@ -55,7 +58,7 @@ class TradeRecord(models.Model):
     lowest_price = models.FloatField(default=0.0)
     trade_volume = models.FloatField(default=0.0)
     trade_amount = models.FloatField(default=0.0)
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
 
 
 class StockBonusHistory(models.Model):
@@ -67,7 +70,7 @@ class StockBonusHistory(models.Model):
     stock_bonus = models.FloatField(default=0.0)
     status = models.BooleanField(default=False)
     exright_date = models.DateField(blank=True, default="1970-1-1")
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
 
 
 class StockAllotmentHistory(models.Model):
@@ -79,7 +82,8 @@ class StockAllotmentHistory(models.Model):
     allotment_capital_base = models.FloatField(default=0.0)
     exright_date = models.DateField(blank=True, default="1970-1-1")
     record_date = models.DateField(blank=True, default="1970-1-1")
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
+
 
 class ChangeHistory(models.Model):
     stock = models.ForeignKey('StockInfo', on_delete=models.CASCADE)
@@ -91,6 +95,7 @@ class ChangeHistory(models.Model):
     class Meta:
         app_label = 'stock'
 
+
 class IndexRecord(models.Model):
     code = models.CharField(max_length=10)
     name = models.CharField(max_length=20)
@@ -101,4 +106,27 @@ class IndexRecord(models.Model):
     lowest_index = models.FloatField(default=0.0)
     trade_volume = models.FloatField(default=0.0)
     trade_amount = models.FloatField(default=0.0)
-    generated_time =models.DateTimeField(auto_now_add=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
+
+
+class CoinInfo(models.Model):
+    name = models.CharField(max_length=60)
+    slug = models.CharField(max_length=60)
+    rank = models.IntegerField(default=0)
+    symbol = models.CharField(max_length=40)
+
+
+class CoinRecord(models.Model):
+    coin = models.ForeignKey('CoinInfo', on_delete=models.CASCADE)
+    symbol = models.CharField(max_length=10)
+    date = models.DateField(blank=True)
+    open_price = models.FloatField(default=0.0)
+    hignest_price = models.FloatField(default=0.0)
+    close_price = models.FloatField(default=0.0)
+    lowest_price = models.FloatField(default=0.0)
+    trade_volume = models.FloatField(default=0.0)
+    market_cap = models.FloatField(default=0.0)
+    generated_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('coin', 'date')
