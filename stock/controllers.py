@@ -547,5 +547,43 @@ def craw_coin_from_coinmarket():
                 CoinRecord.objects.create(coin=one, date=date, symbol=one.symbol, open_price=open_price,
                     hignest_price=high_price, lowest_price=low_price, close_price=close_price,
                     trade_volume=dollar_volume, market_cap=market_cap)
-            # break
-        # break
+
+def analysis_coin_price():
+    coins = CoinInfo.objects.filter(rank__lt=30)
+    total = 1000000
+    coin_dict = {}
+    average_lenth = 3
+    for one in coins:
+        # print(one.symbol)
+        coin_records = CoinRecord.objects.filter(coin=one).order_by('date')[365:]
+        if not coin_records:
+            continue
+        if len(coin_records) < average_lenth:
+            continue
+
+        x = average_lenth
+        while(x < len(coin_records)):
+            sum_volume = 0
+            for i in range(average_lenth):
+                sum_volume += coin_records[x-i-1].trade_volume
+
+            average_volume = sum_volume/average_lenth
+
+            if coin_records[x].trade_volume/average_volume > 1.1:
+                if one.symbol not in coin_dict and total > 0:
+                    total -= 20000
+                    coin_dict[one.symbol] = 20000 / coin_records[x].close_price
+                    str1 = ''
+                    for key in coin_dict:
+                        str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
+                    print(round(total, 2), str1)
+
+            if coin_records[x].close_price < coin_records[x-1].close_price:
+                if one.symbol in coin_dict:
+                    total += coin_dict[one.symbol] * coin_records[x].close_price
+                    str1 = ''
+                    coin_dict.pop(one.symbol)
+                    for key in coin_dict:
+                        str1 +=  key + ":" + str(round(coin_dict[key], 2)) + ' '
+                    print(round(total, 2), str1)
+            x += 1
