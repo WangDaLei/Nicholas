@@ -1,4 +1,3 @@
-# -*-coding:utf8-*-
 
 import os
 import re
@@ -7,50 +6,64 @@ import copy
 
 from datetime import datetime, date, timedelta
 import requests
-import smtplib
 import mistune
 from django.db.models import Max
 from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.header import Header
-from dateutil.relativedelta import relativedelta
-from .models import  ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
-                        StockBonusHistory, StockAllotmentHistory, StockInfo,\
-                        TradeRecord, IndexRecord, CoinInfo, CoinRecord
-from stock_project.config import mail_hostname, mail_username, mail_password,\
-                                mail_encoding, mail_from, mail_to
-from django.db.models import Sum
+from .models import \
+    ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
+    StockBonusHistory, StockAllotmentHistory, StockInfo,\
+    TradeRecord, IndexRecord, CoinInfo, CoinRecord
+from stock_project.config import \
+    mail_hostname, mail_username, mail_password,\
+    mail_encoding, mail_from, mail_to
 
 from scrapy.selector import Selector
 from PyPDF2 import PdfFileReader
 from tabula import read_pdf
 
+
 def get_stock_name_code(stock):
     return str(stock.name) + "(" + str(stock.code) + ") "
 
+
 def get_stock_info():
-    change_history = ChangeHistory.objects.filter(generated_time=date.today()).order_by('stock_id')
+    change_history = ChangeHistory.objects.filter(
+        generated_time=date.today()).order_by('stock_id')
 
     info = ""
+    str_name = "%s名字: 从%s变为%s\n"
+    str_block = "%s板块: 从%s变为%s\n"
+    str_property = "%s企业性质: 从%s变为%s\n"
+    str_time = "%s上市时间: 从%s变为%s\n"
+    str_capital = "%s股本: 从%s万股变为%s万股\n"
+    str_status = "%s状态: 从%s变为%s\n"
     for one in change_history:
         if one.field == 'name':
-            info += (get_stock_name_code(one.stock) + "名字: 从" + str(one.change_source) + "变为" +\
-                    str(one.change_target) + "\n")
+            info += str_name % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         elif one.field == 'block':
-            info += (get_stock_name_code(one.stock) + "板块: 从" + str(one.change_source) + "变为" +\
-                    str(one.change_target) + "\n")
+            info += str_block % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         elif one.field == 'ownership':
-            info += (get_stock_name_code(one.stock) + "企业性质: 从" + str(one.change_source) + "变为" +\
-                    str(one.change_target) + "\n")
+            info += str_property % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         elif one.field == 'market_list_date':
-            info += (get_stock_name_code(one.stock) + "上市时间: 从" + str(one.change_source) + "变为" +\
-                    str(one.change_target) + "\n")
+            info += str_time % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         elif one.field == 'equity':
-            info += (get_stock_name_code(one.stock) + "股本: 从" + str(one.change_source) + "万股变为" +\
-                    str(one.change_target) + "万股\n")
+            info += str_capital % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         elif one.field == 'status':
-            info += (get_stock_name_code(one.stock) + "状态: 从" + str(one.change_source) + "变为" +\
-                    str(one.change_target) + "\n")
+            info += str_status % (
+                get_stock_name_code(one.stock), str(one.change_source),
+                str(one.change_target))
         else:
             pass
     if info != "":
@@ -58,28 +71,36 @@ def get_stock_info():
     else:
         return info
 
+
 def get_pre_capital_amount(stock):
-    pre_capital_amount = CapitalStockAmountHistory.objects.filter(stock=stock).order_by('-change_date')
+    pre_capital_amount = CapitalStockAmountHistory.objects.filter(
+        stock=stock).order_by('-change_date')
     if pre_capital_amount.count() <= 1:
         return str(0)
     else:
         return str(pre_capital_amount[1].num)
 
+
 def get_capital_amount():
     start_time = datetime.combine(date.today(), datetime.min.time())
-    end_time = datetime.combine(date.today() + timedelta(days=1), datetime.min.time())
-    capital_amount = CapitalStockAmountHistory.objects.filter(generated_time__range=[start_time, end_time])\
-                        .order_by('stock_id')
+    end_time = datetime.combine(
+        date.today() + timedelta(days=1), datetime.min.time())
+    capital_amount = CapitalStockAmountHistory.objects.filter(
+        generated_time__range=[start_time, end_time]).order_by('stock_id')
 
     info = ""
+    str_output = "%s由于%s 股本数量由%s万股变为%s万股, 改变的时间为:%s\n"
     for one in capital_amount:
-        info += (get_stock_name_code(one.stock) + "由于" + str(one.reason) + " 股本数量由" +\
-                    get_pre_capital_amount(one.stock) + "万股变为" + str(one.num) +"万股, 改变的时间为:"\
-                    + str(one.change_date) + "\n")
+        info += str_output % (
+            get_stock_name_code(one.stock), str(one.reason),
+            get_pre_capital_amount(one.stock), str(one.num),
+            str(one.change_date))
+
     if info != "":
         return "### 股本变化\n```\n" + info + "```\n"
     else:
         return info
+
 
 def get_pre_finance(stock):
     pre_capital_amount = FinanceHistory.objects.filter(stock=stock).order_by('-date')
@@ -88,53 +109,63 @@ def get_pre_finance(stock):
     else:
         return pre_capital_amount[1]
 
+
 def get_finance():
     start_time = datetime.combine(date.today(), datetime.min.time())
     end_time = datetime.combine(date.today() + timedelta(days=1), datetime.min.time())
     finance = FinanceHistory.objects.filter(generated_time__range=[start_time, end_time])\
-                        .order_by('stock_id')
+        .order_by('stock_id')
 
     info = ""
+    str_compare = "%s发布财报: 每股净资产为%s 总资产为%s 总债务为%s 营业收入为%s" +\
+                  " 总利润为%s 财报日期%s\n    其前值分别是: 每股净资产%s 总资产为%s 总债务为%s" +\
+                  " 营业收入为%s 总利润为%s 财报日期%s\n"
+    str_capital = "%s首次发布财报: 每股净资产为%s 总资产为%s 总债务为%s 营业收入为%s 总利润为%s\n"
     for one in finance:
         pre_capital_amount = get_pre_finance(one.stock)
         if pre_capital_amount:
-            info += (get_stock_name_code(one.stock) + "发布财报: 每股净资产为" + str(one.per_share_net_asset)\
-                        + " 总资产为" + str(one.total_asset) + " 总债务为" + str(one.total_liabilities)\
-                        + " 营业收入为" + str(one.business_income) + " 总利润为" + str(one.net_profit)\
-                        + " 财报日期" + str(one.date) + "\n    其前值分别是: 每股净资产" + str(one.per_share_net_asset)
-                        + " 总资产为" + str(one.total_asset) + " 总债务为" + str(one.total_liabilities)\
-                        + " 营业收入为" + str(one.business_income) + " 总利润为" + str(one.net_profit)\
-                        + " 财报日期" + str(one.date) + "\n")
+            info += str_compare % (
+                get_stock_name_code(one.stock), str(one.per_share_net_asset),
+                str(one.total_asset), str(one.total_liabilities), str(one.business_income),
+                str(one.net_profit), str(one.date), str(one.per_share_net_asset),
+                str(one.total_asset), str(one.total_liabilities), str(one.business_income),
+                str(one.net_profit), str(one.date))
         else:
-            info += (get_stock_name_code(one.stock) + "首次发布财报: 每股净资产为" + str(one.per_share_net_asset)\
-                        + " 总资产为" + str(one.total_asset) + " 总债务为" + str(one.total_liabilities)\
-                        + " 营业收入为" + str(one.business_income) + " 总利润为" + str(one.net_profit) + "\n")
+            info += str_capital % (
+                get_stock_name_code(one.stock), str(one.per_share_net_asset),
+                str(one.total_asset), str(one.total_liabilities), str(one.business_income),
+                str(one.net_profit))
     if info != "":
         return "### 公司财报\n```\n" + info + "```\n"
     else:
         return info
+
+
 def get_bonus_allot():
     info = ""
     start_time = datetime.combine(date.today(), datetime.min.time())
     end_time = datetime.combine(date.today() + timedelta(days=1), datetime.min.time())
-    bonus = StockBonusHistory.objects.filter(generated_time__range=[start_time, end_time],status=True)\
-                        .order_by('stock_id')
-    allotment = StockAllotmentHistory.objects.filter(generated_time__range=[start_time, end_time])\
-                        .order_by('stock_id')
+    bonus = StockBonusHistory.objects.filter(
+        generated_time__range=[start_time, end_time], status=True).order_by('stock_id')
+    allotment = StockAllotmentHistory.objects.filter(
+        generated_time__range=[start_time, end_time]).order_by('stock_id')
 
+    str_bonus = "%s分红: 送股(10股)%s 转股(10股)%s 派息%s 公布日期%s 除权日期%s\n"
+    str_allotment = "%s配股: 数量(10股)%s 价格%s 基数(万股)%s 公布日期%s 除权日期%s 记录日期%s\n"
     for one in bonus:
-        info += (get_stock_name_code(one.stock) + "分红: 送股(10股)" + str(one.stock_give)\
-                    + " 转股(10股)" + str(one.stock_transfer) + " 派息" + str(one.stock_bonus)\
-                    + " 公布日期" + str(one.public_date) + " 除权日期" + str(one.exright_date) + "\n")
+        info += str_bonus % (
+            get_stock_name_code(one.stock), str(one.stock_give), str(one.stock_transfer),
+            str(one.stock_bonus), str(one.public_date), str(one.exright_date))
     for one in allotment:
-        info += (get_stock_name_code(one.stock) + "配股: 数量(10股)" + str(one.allotment_num)\
-                    + " 价格" + str(one.allotment_price) + " 基数(万股)" + str(one.allotment_capital_base)\
-                    + " 公布日期" + str(one.public_date) + " 除权日期" + str(one.exright_date)\
-                    + "记录日期" + str(one.record_date) + "\n")
+        info += str_allotment % (
+            get_stock_name_code(one.stock), str(one.allotment_num), str(one.allotment_price),
+            str(one.allotment_capital_base), str(one.public_date), str(one.exright_date),
+            str(one.record_date))
     if info != "":
         return "### 公司分红信息\n```\n" + info + "```\n"
     else:
         return info
+
 
 def get_trade_amount_sum():
     today = date.today()
@@ -143,7 +174,7 @@ def get_trade_amount_sum():
     big_block_str = ""
     for i in range(30):
         stocks = StockInfo.objects.filter(stock_exchange='上证交易所')
-        one_date = today + timedelta(days=-1*i)
+        one_date = today + timedelta(days=-1 * i)
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
@@ -151,13 +182,13 @@ def get_trade_amount_sum():
                 sum_amount += trade_one.first().trade_amount
         # sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='上证交易所')\
         #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
-        sum_amount = round(sum_amount/100000000, 2)
+        sum_amount = round(sum_amount / 100000000, 2)
         if sum_amount:
             shang_str += '上证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
 
     for i in range(30):
         stocks = StockInfo.objects.filter(stock_exchange='深证交易所')
-        one_date = today + timedelta(days=-1*i)
+        one_date = today + timedelta(days=-1 * i)
         sum_amount = 0.0
         for one in stocks:
             trade_one = TradeRecord.objects.filter(date=one_date, code=one.code)
@@ -165,7 +196,7 @@ def get_trade_amount_sum():
                 sum_amount += trade_one.first().trade_amount
         # sum_amount = TradeRecord.objects.filter(date=one_date, stock__stock_exchange='深证交易所')\
         #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
-        sum_amount = round(sum_amount/100000000, 2)
+        sum_amount = round(sum_amount / 100000000, 2)
         if sum_amount:
             shen_str += '深证交易所:' + str(one_date) + " " + str(sum_amount) + "亿\n"
 
@@ -174,7 +205,7 @@ def get_trade_amount_sum():
         if str(one[0]) == '':
             continue
         for i in range(7):
-            one_date = today + timedelta(days=-1*i)
+            one_date = today + timedelta(days=-1 * i)
             stocks = StockInfo.objects.filter(big_block=one[0])
             sum_amount = 0.0
             for one_stock in stocks:
@@ -184,7 +215,7 @@ def get_trade_amount_sum():
 
             # sum_amount = TradeRecord.objects.filter(date=one_date, stock__big_block=one)\
             #                 .aggregate(num=Sum('trade_amount')).get('num') or 0
-            sum_amount = round(sum_amount/100000000, 2)
+            sum_amount = round(sum_amount / 100000000, 2)
             if sum_amount:
                 big_block_str += str(one[0]) + ':' + str(one_date) + " " + str(sum_amount) + "亿\n"
         big_block_str += '\n'
@@ -200,6 +231,7 @@ def get_trade_amount_sum():
         if big_block_str:
             info += "#### 分模块统计\n```\n" + big_block_str + "```\n"
         return info
+
 
 def send_email(info):
     info = mistune.markdown(info, escape=True, hard_wrap=True)
@@ -228,6 +260,7 @@ def send_email(info):
     smtp.sendmail(mail_info["from"], mail_info["to"], msg.as_string())
     smtp.quit()
 
+
 def crawl_block_from_CSRC():
     url_base = "http://www.csrc.gov.cn/pub/newsite/scb/ssgshyfljg/"
     req = requests.get(url_base)
@@ -240,13 +273,13 @@ def crawl_block_from_CSRC():
             encoding = req.apparent_encoding
 
         global encode_content
-        encode_content = req.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
-
+        # 如果设置为replace，则会用?取代非法字符；
+        encode_content = req.content.decode(encoding, 'replace')
 
         sel = Selector(text=encode_content)
         name_list = sel.xpath('//div/div/div[re:test(text(), "上市公司行业分类结果")]\
                         /parent::*/following-sibling::*/ul/li/a//text()').extract()
-        
+
         url_list = sel.xpath('//div/div/div[re:test(text(), "上市公司行业分类结果")]\
                         /parent::*/following-sibling::*/ul/li/a/@href').extract()
 
@@ -279,18 +312,20 @@ def crawl_block_from_CSRC():
                 else:
                     encoding = req.apparent_encoding
 
-                encode_content1 = req.content.decode(encoding, 'replace') #如果设置为replace，则会用?取代非法字符；
+                # 如果设置为replace，则会用?取代非法字符；
+                encode_content1 = req.content.decode(encoding, 'replace')
                 sel = Selector(text=encode_content1)
-                pdf_list = sel.xpath('//a[re:test(text(), "%s")]//@href'%(name)).extract()
+                pdf_list = sel.xpath('//a[re:test(text(), "%s")]//@href' % (name)).extract()
                 pdf_name = pdf_list[0]
-                pdf_url = url.rsplit('/',1)[0] + pdf_name[1:]
+                pdf_url = url.rsplit('/', 1)[0] + pdf_name[1:]
 
-                req =  requests.get(pdf_url)
+                req = requests.get(pdf_url)
                 file_pdf = open('CSRC/' + str(max_date) + "/" + pdf_name[2:], 'wb')
                 file_pdf.write(req.content)
                 file_pdf.close()
                 return True, max_date, pdf_name[2:]
             return False, None, None
+
 
 def parse_CRSC_PDF(date, name):
 
@@ -302,11 +337,8 @@ def parse_CRSC_PDF(date, name):
 
     json_dict = {}
 
-    code_list = []
-    small_block_dict = {}
-
     for i in range(pages):
-        content = read_pdf('./CSRC/' + date + '/' + name, pages=i+1, multiple_tables=True)
+        content = read_pdf('./CSRC/' + date + '/' + name, pages=i + 1, multiple_tables=True)
         content_list = re.split(r'[ \n]+', str(content))
 
         for j in range(len(content_list)):
@@ -314,14 +346,16 @@ def parse_CRSC_PDF(date, name):
                 continue
             if j % 6 == 1:
                 if not content_list[j].endswith(')') and content_list[j] != 'NaN':
-                    if j+7 < len(content_list) and content_list[j+7] == 'NaN' and content_list[j+6] != 'NaN':
-                        big_block = content_list[j] + content_list[j+6]
+                    if j + 7 < len(content_list) and content_list[j + 7] == 'NaN' and\
+                       content_list[j + 6] != 'NaN':
+                        big_block = content_list[j] + content_list[j + 6]
                         m = 2
                         while not big_block.endswith(')'):
                             if j + 6 * m + 1 > len(content_list):
                                 break
-                            if content_list[6*m +j + 1] == 'NaN' and content_list[6*m + j] != 'NaN':
-                                big_block += content_list[6*m + j]
+                            if content_list[6 * m + j + 1] == 'NaN' and\
+                               content_list[6 * m + j] != 'NaN':
+                                big_block += content_list[6 * m + j]
                             else:
                                 break
                             m += 1
@@ -351,14 +385,16 @@ def parse_CRSC_PDF(date, name):
                     pass
             if j % 6 == 3:
                 if content_list[j] != 'NaN':
-                    if j+5 < len(content_list) and content_list[j+5] == 'NaN' and content_list[j+6] != 'NaN':
-                        small_block = content_list[j] + content_list[j+6]
+                    if j + 5 < len(content_list) and content_list[j + 5] == 'NaN' and\
+                       content_list[j + 6] != 'NaN':
+                        small_block = content_list[j] + content_list[j + 6]
                         m = 2
                         while not big_block.endswith(')'):
                             if 6 * m + j > len(content_list):
                                 break
-                            if content_list[6*m +j - 1] == 'NaN' and content_list[6*m + j] != 'NaN':
-                                small_block += content_list[6*m + j]
+                            if content_list[6 * m + j - 1] == 'NaN' and\
+                               content_list[6 * m + j] != 'NaN':
+                                small_block += content_list[6 * m + j]
                             else:
                                 break
                             m += 1
@@ -366,7 +402,8 @@ def parse_CRSC_PDF(date, name):
                         small_block = content_list[j]
                     if pre_small_block.find(small_block) == -1:
                         if small_block.find(pre_small_block) != -1 and pre_small_block != "":
-                            json_dict[pre_block][small_block] = copy.deepcopy(json_dict[pre_block][pre_small_block])
+                            json_dict[pre_block][small_block] = copy.deepcopy(
+                                json_dict[pre_block][pre_small_block])
                             json_dict[pre_block].pop(pre_small_block)
                             pre_small_block = small_block
                         else:
@@ -385,6 +422,7 @@ def parse_CRSC_PDF(date, name):
 
     with open('./CSRC/' + date + '/' + "re.json", 'w') as f:
         f.write(json.dumps(json_dict, ensure_ascii=False))
+
 
 def repair_json_files(date):
     with open('./CSRC/' + date + '/' + "re.json", 'r') as f:
@@ -427,6 +465,7 @@ def repair_json_files(date):
     with open('./CSRC/' + date + '/' + "re.json", 'w') as f:
         f.write(json.dumps(content, ensure_ascii=False))
 
+
 def update_block(file_date):
     with open('./CSRC/' + file_date + '/' + "re.json", 'r') as f:
         content = json.loads(f.read())
@@ -439,16 +478,18 @@ def update_block(file_date):
                 if stock_set:
                     one = stock_set.first()
                     if one.big_block != key:
-                        ChangeHistory.objects.create(stock=one, change_source=one.big_block,\
-                                                change_target=key, field='big_block',\
-                                                generated_time=date.today())
+                        ChangeHistory.objects.create(
+                            stock=one, change_source=one.big_block,
+                            change_target=key, field='big_block',
+                            generated_time=date.today())
                         one.big_block = key
                         one.save()
 
                     if one.block != small:
-                        ChangeHistory.objects.create(stock=one, change_source=one.block,\
-                                                change_target=small, field='block',\
-                                                generated_time=date.today())
+                        ChangeHistory.objects.create(
+                            stock=one, change_source=one.block,
+                            change_target=small, field='block',
+                            generated_time=date.today())
                         one.block = small
                         one.save()
 
@@ -468,8 +509,7 @@ def crawl_index_from_sohu():
             start_date = '20000101'
 
         end_date = str(date.today()).replace('-', '')
-        url = url_base%(code, start_date, end_date)
-
+        url = url_base % (code, start_date, end_date)
 
         req = requests.get(url)
 
@@ -478,7 +518,8 @@ def crawl_index_from_sohu():
         if len(res_list):
             hq = res_list[0]['hq']
             for one in hq:
-                index,_ = IndexRecord.objects.get_or_create(code=code, name=index_name[i], date=one[0])
+                index, _ = IndexRecord.objects.get_or_create(
+                    code=code, name=index_name[i], date=one[0])
                 index.open_index = one[1]
                 index.highest_index = one[6]
                 index.close_index = one[2]
@@ -489,7 +530,8 @@ def crawl_index_from_sohu():
 
 
 def get_date_from_str(str):
-    month_dict = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12}
+    month_dict = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+                  "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12}
     try:
         year = str.split(',')[1].strip()
         day = str.split(',')[0].split(' ')[1].strip()
@@ -508,7 +550,8 @@ def get_num_from_str(str):
 
 def craw_coin_from_coinmarket():
     all_coin_url = "https://s2.coinmarketcap.com/generated/search/quick_search.json"
-    coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/?start=20100101&end=20300101"
+    coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/" +\
+                            "?start=20100101&end=20300101"
 
     req = requests.get(all_coin_url)
     res_list = json.loads(req.content)
@@ -530,23 +573,27 @@ def craw_coin_from_coinmarket():
         url = coin_trade_record_url % (slug)
         req = requests.get(url)
         sel = Selector(text=req.content)
-        name_list = sel.xpath('//div[re:test(@class, "table-responsive")]/table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()').extract()
+        name_list = sel.xpath('//div[re:test(@class, "table-responsive")]/" +\
+            "table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()')\
+            .extract()
         lenth = len(name_list) // 7
 
         for i in range(lenth):
-            date = get_date_from_str(name_list[i*7])
-            open_price = name_list[i*7 + 1]
-            high_price = name_list[i*7 + 2]
-            low_price = name_list[i*7 + 3]
-            close_price = name_list[i*7 + 4]
-            dollar_volume = get_num_from_str(name_list[i*7 + 5])
-            market_cap = get_num_from_str(name_list[i*7 + 6])
+            date = get_date_from_str(name_list[i * 7])
+            open_price = name_list[i * 7 + 1]
+            high_price = name_list[i * 7 + 2]
+            low_price = name_list[i * 7 + 3]
+            close_price = name_list[i * 7 + 4]
+            dollar_volume = get_num_from_str(name_list[i * 7 + 5])
+            market_cap = get_num_from_str(name_list[i * 7 + 6])
 
             coin_record = CoinRecord.objects.filter(coin=one, date=date)
             if not coin_record:
-                CoinRecord.objects.create(coin=one, date=date, symbol=one.symbol, open_price=open_price,
+                CoinRecord.objects.create(
+                    coin=one, date=date, symbol=one.symbol, open_price=open_price,
                     hignest_price=high_price, lowest_price=low_price, close_price=close_price,
                     trade_volume=dollar_volume, market_cap=market_cap)
+
 
 def analysis_coin_price_based_coin():
     coins = CoinInfo.objects.filter(rank__lt=50)
@@ -565,11 +612,11 @@ def analysis_coin_price_based_coin():
         while(x < len(coin_records)):
             sum_volume = 0
             for i in range(average_lenth):
-                sum_volume += coin_records[x-i-1].trade_volume
+                sum_volume += coin_records[x - i - 1].trade_volume
 
-            average_volume = sum_volume/average_lenth
+            average_volume = sum_volume / average_lenth
 
-            if coin_records[x].trade_volume/average_volume > 1.1:
+            if coin_records[x].trade_volume / average_volume > 1.1:
                 if one.symbol not in coin_dict and total > 0:
                     total -= 20000
                     coin_dict[one.symbol] = 20000 / coin_records[x].close_price
@@ -578,13 +625,13 @@ def analysis_coin_price_based_coin():
                         str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
                     print(round(total, 2), str1)
 
-            if coin_records[x].close_price < coin_records[x-1].close_price:
+            if coin_records[x].close_price < coin_records[x - 1].close_price:
                 if one.symbol in coin_dict:
                     total += coin_dict[one.symbol] * coin_records[x].close_price
                     str1 = ''
                     coin_dict.pop(one.symbol)
                     for key in coin_dict:
-                        str1 +=  key + ":" + str(round(coin_dict[key], 2)) + ' '
+                        str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
                     print(round(total, 2), str1)
             x += 1
 
@@ -595,11 +642,12 @@ def analysis_coin_price_based_date():
     date_today = date.today()
     min_date = date_today
     average_lenth = 5
-    total = 100000
+    total = 1000000
     coin_dict = {}
 
-    huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG', 'ZEC', 'BTM',
-        'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF', 'RUFF', 'HC', 'NEO', 'BSV']
+    huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG',
+                       'ZEC', 'BTM', 'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF',
+                       'RUFF', 'HC', 'NEO', 'BSV']
 
     for one in coins:
         if one.symbol == 'USDT' or one.symbol == 'TUSD':
@@ -612,22 +660,24 @@ def analysis_coin_price_based_date():
             min_date = min_coin.date
 
     min_date += timedelta(days=365)
-    min_date = date(2018, 1, 1)
+    min_date = date(2019, 1, 1)
 
     while min_date < date_today:
         for key in date_dict:
             if date_dict[key] + timedelta(days=365) < min_date:
-                coin_record = CoinRecord.objects.filter(symbol=key, date__lte=min_date).order_by('-date')
+                coin_record = CoinRecord.objects.filter(
+                    symbol=key, date__lte=min_date).order_by('-date')
                 if len(coin_record) < average_lenth + 1:
                     continue
                 sum_volume = 0.0
                 for i in range(average_lenth):
-                    sum_volume += coin_record[i+1].trade_volume
+                    sum_volume += coin_record[i + 1].trade_volume
                 average_volume = sum_volume / average_lenth
-                if coin_record[0].trade_volume / average_volume > 1.5 and key not in coin_dict\
-                    and total >= 20000:
+                if coin_record[0].trade_volume / average_volume > 1.2 and key not in coin_dict\
+                   and total >= 20000 and coin_record[0].trade_volume / coin_record[1].trade_volume\
+                   > 1.2:
                     total -= 20000
-                    coin_dict[key] = 20000/coin_record[0].close_price
+                    coin_dict[key] = 20000 / coin_record[0].close_price
                 if coin_record[0].close_price < coin_record[1].close_price and key in coin_dict:
                     total += coin_dict[key] * coin_record[0].close_price
                     coin_dict.pop(key)
@@ -635,6 +685,6 @@ def analysis_coin_price_based_date():
                 pass
         str1 = ''
         for key in coin_dict:
-            str1 +=  key + ":" + str(round(coin_dict[key], 2)) + ' '
-        print(min_date, round(total, 2), str1+'\n')
+            str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
+        print(min_date, round(total, 2), str1 + '\n')
         min_date += timedelta(days=1)
