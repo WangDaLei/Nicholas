@@ -1,14 +1,14 @@
 # coding=utf-8
 import os
-from celery import shared_task
+# from celery import shared_task
 from celery.decorators import periodic_task
 from celery.task.schedules import crontab
-from datetime import timedelta, datetime, date
-from .controllers import get_stock_info, get_capital_amount,\
-                            get_finance, get_bonus_allot, send_email,\
-                            crawl_block_from_CSRC, parse_CRSC_PDF,\
-                            repair_json_files, update_block, get_trade_amount_sum,\
-                            crawl_index_from_sohu
+from .controllers import \
+    get_stock_info, get_capital_amount,\
+    get_finance, get_bonus_allot, send_email,\
+    crawl_block_from_CSRC, parse_CRSC_PDF,\
+    repair_json_files, update_block, get_trade_amount_sum,\
+    crawl_index_from_sohu, craw_coin_from_coinmarket
 
 
 @periodic_task(run_every=crontab(hour=7, minute=35))
@@ -22,7 +22,7 @@ def crawl_stock_daily_info():
         update_block(date)
 
     crawl_index_from_sohu()
-    
+
     os.system('cd stock_spider && scrapy crawl stock_block_spider')
     os.system('cd stock_spider && scrapy crawl stock_capital_amount_spider')
     os.system('cd stock_spider && scrapy crawl stock_finance_spider')
@@ -55,3 +55,8 @@ def crawl_stock_daily_info():
     info = get_trade_amount_sum()
     if info:
         send_email(info)
+
+
+@periodic_task(run_every=crontab(hour=0, minute=10))
+def craw_coin_from_coinmarket_task():
+    craw_coin_from_coinmarket()

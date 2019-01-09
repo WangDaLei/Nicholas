@@ -573,17 +573,18 @@ def craw_coin_from_coinmarket():
         url = coin_trade_record_url % (slug)
         req = requests.get(url)
         sel = Selector(text=req.content)
-        name_list = sel.xpath('//div[re:test(@class, "table-responsive")]/" +\
-            "table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()')\
+        name_list = sel.xpath(
+            '//div[re:test(@class, "table-responsive")]/' +
+            'table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()')\
             .extract()
         lenth = len(name_list) // 7
 
         for i in range(lenth):
             date = get_date_from_str(name_list[i * 7])
-            open_price = name_list[i * 7 + 1]
-            high_price = name_list[i * 7 + 2]
-            low_price = name_list[i * 7 + 3]
-            close_price = name_list[i * 7 + 4]
+            open_price = get_num_from_str(name_list[i * 7 + 1])
+            high_price = get_num_from_str(name_list[i * 7 + 2])
+            low_price = get_num_from_str(name_list[i * 7 + 3])
+            close_price = get_num_from_str(name_list[i * 7 + 4])
             dollar_volume = get_num_from_str(name_list[i * 7 + 5])
             market_cap = get_num_from_str(name_list[i * 7 + 6])
 
