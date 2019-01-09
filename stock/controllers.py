@@ -549,6 +549,11 @@ def get_num_from_str(str):
 
 
 def craw_coin_from_coinmarket():
+    """
+    Crawl coin info.
+
+        抓取币每天的交易信息.
+    """
     all_coin_url = "https://s2.coinmarketcap.com/generated/search/quick_search.json"
     coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/" +\
                             "?start=20100101&end=20300101"
@@ -638,6 +643,11 @@ def analysis_coin_price_based_coin():
 
 
 def analysis_coin_price_based_date():
+    """
+    Analysis.
+
+        根据币的交易信息决定买入卖出策略
+    """
     coins = CoinInfo.objects.filter(rank__lte=50)
     date_dict = {}
     date_today = date.today()
@@ -645,6 +655,7 @@ def analysis_coin_price_based_date():
     average_lenth = 5
     total = 1000000
     coin_dict = {}
+    output_str = ''
 
     huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG',
                        'ZEC', 'BTM', 'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF',
@@ -687,5 +698,6 @@ def analysis_coin_price_based_date():
         str1 = ''
         for key in coin_dict:
             str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
-        print(min_date, round(total, 2), str1 + '\n')
+        output_str += str(str(min_date) + " " + str(round(total, 2)) + " " + str1 + '\n')
         min_date += timedelta(days=1)
+    send_email(output_str)

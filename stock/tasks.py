@@ -8,7 +8,8 @@ from .controllers import \
     get_finance, get_bonus_allot, send_email,\
     crawl_block_from_CSRC, parse_CRSC_PDF,\
     repair_json_files, update_block, get_trade_amount_sum,\
-    crawl_index_from_sohu, craw_coin_from_coinmarket
+    crawl_index_from_sohu, craw_coin_from_coinmarket,\
+    analysis_coin_price_based_date
 
 
 @periodic_task(run_every=crontab(hour=7, minute=35))
@@ -60,3 +61,4 @@ def crawl_stock_daily_info():
 @periodic_task(run_every=crontab(hour=0, minute=10))
 def craw_coin_from_coinmarket_task():
     craw_coin_from_coinmarket()
+    analysis_coin_price_based_date()
