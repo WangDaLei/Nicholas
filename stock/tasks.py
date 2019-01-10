@@ -61,4 +61,8 @@ def crawl_stock_daily_info():
 @periodic_task(run_every=crontab(hour=0, minute=10))
 def craw_coin_from_coinmarket_task():
     craw_coin_from_coinmarket()
+
+
+@periodic_task(run_every=crontab(hour=0, minute=25))
+def analysis_coin_price_based_date_task():
     analysis_coin_price_based_date()

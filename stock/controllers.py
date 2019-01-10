@@ -556,7 +556,7 @@ def craw_coin_from_coinmarket():
     """
     all_coin_url = "https://s2.coinmarketcap.com/generated/search/quick_search.json"
     coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/" +\
-                            "?start=20100101&end=20300101"
+                            "?start=20190101&end=20300101"
 
     req = requests.get(all_coin_url)
     res_list = json.loads(req.content)
