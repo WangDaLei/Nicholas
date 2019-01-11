@@ -571,7 +571,7 @@ def craw_coin_from_coinmarket():
             coin.rank = rank
             coin.save()
 
-    coins = CoinInfo.objects.all()
+    coins = CoinInfo.objects.all().order_by('rank')
     for one in coins:
         print(one.symbol)
         slug = one.slug
