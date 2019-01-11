@@ -671,8 +671,8 @@ def analysis_coin_price_based_date():
         if min_coin.date < min_date:
             min_date = min_coin.date
 
-    min_date += timedelta(days=365)
-    min_date = date(2019, 1, 1)
+    # min_date += timedelta(days=365)
+    min_date = date.today() + timedelta(days=-5)
 
     while min_date < date_today:
         for key in date_dict:
