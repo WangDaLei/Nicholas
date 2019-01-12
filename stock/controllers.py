@@ -14,7 +14,8 @@ from email.header import Header
 from .models import \
     ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
     StockBonusHistory, StockAllotmentHistory, StockInfo,\
-    TradeRecord, IndexRecord, CoinInfo, CoinRecord
+    TradeRecord, IndexRecord, CoinInfo, CoinRecord,\
+    RealTimeRecord
 from stock_project.config import \
     mail_hostname, mail_username, mail_password,\
     mail_encoding, mail_from, mail_to
@@ -701,3 +702,23 @@ def analysis_coin_price_based_date():
         output_str += str(str(min_date) + " " + str(round(total, 2)) + " " + str1 + '\n')
         min_date += timedelta(days=1)
     send_email(output_str)
+
+
+def crawl_real_time_price():
+    huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG',
+                       'ZEC', 'BTM', 'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF',
+                       'RUFF', 'HC', 'NEO', 'BSV']
+    url_base = "https://coinmarketcap.com/currencies/%s/"
+
+    for one in huobi_coin_list:
+        coin = CoinInfo.objects.filter(symbol=one).order_by('rank').first()
+        url = url_base % (coin.slug)
+        req = requests.get(url)
+        sel = Selector(text=req.content)
+        price_list = sel.xpath('//span[re:test(@id, "quote_price")]/span//text()').extract()
+        price = get_num_from_str(price_list[0])
+
+        volume_list = sel.xpath('//span[count(@data-currency-volume)=1]/span//text()').extract()
+        volume = get_num_from_str(volume_list[0])
+
+        RealTimeRecord.objects.create(coin=coin, price=price, trade_volume=volume)

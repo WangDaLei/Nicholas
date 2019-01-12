@@ -130,3 +130,10 @@ class CoinRecord(models.Model):
 
     class Meta:
         unique_together = ('coin', 'date')
+
+
+class RealTimeRecord(models.Model):
+    coin = models.ForeignKey('CoinInfo', on_delete=models.CASCADE)
+    price = models.FloatField(default=0.0)
+    trade_volume = models.FloatField(default=0.0)
+    generated_time = models.DateTimeField(auto_now_add=True)

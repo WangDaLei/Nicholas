@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 # from celery import shared_task
+from datetime import timedelta
 from celery.decorators import periodic_task
 from celery.task.schedules import crontab
 from .controllers import \
@@ -9,7 +10,7 @@ from .controllers import \
     crawl_block_from_CSRC, parse_CRSC_PDF,\
     repair_json_files, update_block, get_trade_amount_sum,\
     crawl_index_from_sohu, craw_coin_from_coinmarket,\
-    analysis_coin_price_based_date
+    analysis_coin_price_based_date, crawl_real_time_price
 
 
 @periodic_task(run_every=crontab(hour=7, minute=35))
@@ -66,3 +67,8 @@ def craw_coin_from_coinmarket_task():
 @periodic_task(run_every=crontab(hour=0, minute=25))
 def analysis_coin_price_based_date_task():
     analysis_coin_price_based_date()
+
+
+@periodic_task(run_every=timedelta(minutes=10))
+def crawl_real_time_price_task():
+    crawl_real_time_price()
