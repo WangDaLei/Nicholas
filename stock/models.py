@@ -137,3 +137,27 @@ class RealTimeRecord(models.Model):
     price = models.FloatField(default=0.0)
     trade_volume = models.FloatField(default=0.0)
     generated_time = models.DateTimeField(auto_now_add=True)
+
+
+class CoinTradeRecord(models.Model):
+    TRADE_CHOICES = (
+        ('buy', 'buy'),
+        ('sell', 'sell')
+    )
+    coin = models.ForeignKey('CoinInfo', on_delete=models.CASCADE)
+    price = models.FloatField(default=0.0)
+    trade_type = models.CharField(
+        choices=TRADE_CHOICES, max_length=16)
+    trade_num = models.FloatField(default=0.0)
+    generated_time = models.DateTimeField(auto_now_add=True)
+
+
+class CurrentHoldCoin(models.Model):
+    coin = models.ForeignKey('CoinInfo', on_delete=models.CASCADE)
+    number = models.FloatField(default=0.0)
+    update_time = models.DateTimeField(auto_now=True)
+    generated_time = models.DateTimeField(auto_now_add=True)
+
+
+class CurrentMoney(models.Model):
+    num_money = models.FloatField(default=0.0)

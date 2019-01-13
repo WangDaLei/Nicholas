@@ -15,7 +15,8 @@ from .models import \
     ChangeHistory, CapitalStockAmountHistory, FinanceHistory,\
     StockBonusHistory, StockAllotmentHistory, StockInfo,\
     TradeRecord, IndexRecord, CoinInfo, CoinRecord,\
-    RealTimeRecord
+    RealTimeRecord, CurrentHoldCoin, CoinTradeRecord,\
+    CurrentMoney
 from stock_project.config import \
     mail_hostname, mail_username, mail_password,\
     mail_encoding, mail_from, mail_to
@@ -234,7 +235,7 @@ def get_trade_amount_sum():
         return info
 
 
-def send_email(info):
+def send_email(info, title="Daily Stock"):
     info = mistune.markdown(info, escape=True, hard_wrap=True)
 
     mail_info = {
@@ -246,7 +247,7 @@ def send_email(info):
 
     mail_info["from"] = mail_from
     mail_info["to"] = mail_to
-    mail_info["mail_subject"] = "Daily Stock"
+    mail_info["mail_subject"] = title
     mail_info["mail_text"] = info
 
     smtp = SMTP_SSL(mail_info["hostname"])
@@ -722,3 +723,55 @@ def crawl_real_time_price():
         volume = get_num_from_str(volume_list[0])
 
         RealTimeRecord.objects.create(coin=coin, price=price, trade_volume=volume)
+
+
+def sumilate_trade_real_time():
+    hold_coin_dict = {}
+    current_money = 0.0
+    huobi_coin_list = ['BTC', 'ETH', 'XRP', 'BCH', 'LTC', 'ETC', 'EOS', 'ADA', 'DASH', 'OMG',
+                       'ZEC', 'BTM', 'ELA', 'ONT', 'IOST', 'QTUM', 'TRX', 'DTA', 'ZIL', 'ELF',
+                       'RUFF', 'HC', 'NEO', 'BSV']
+    hold_coins = CurrentHoldCoin.objects.filter(number__gt=0)
+    for one in hold_coins:
+        hold_coin_dict[one.coin.symbol] = one.number
+
+    current_money = CurrentMoney.objects.first().num_money
+
+    for one in huobi_coin_list:
+        coin = CoinInfo.objects.filter(symbol=one).order_by('rank').first()
+        records = RealTimeRecord.objects.filter(coin=coin).order_by('-generated_time')[0:2]
+        last_day = CoinRecord.objects.filter(coin=coin).order_by('-date').last()
+        lastest = records[0]
+        if len(records) < 2 or not last_day or last_day.trade_volume == 0 or\
+           last_day.trade_volume == 0 or lastest.price == 0:
+            continue
+        if lastest.trade_volume / last_day.trade_volume > 1.2 and lastest.trade_volume\
+           > records[1].trade_volume:
+            if one not in hold_coin_dict:
+                price = lastest.price
+                volume = round(20000 / price, 2)
+                if price * volume < current_money:
+                    CoinTradeRecord.objects.create(
+                        coin=coin, price=price, trade_type='buy', trade_num=volume)
+                    hold_coin, _ = CurrentHoldCoin.objects.get_or_create(coin=coin)
+                    hold_coin.number += volume
+                    hold_coin.save()
+                    money = CurrentMoney.objects.first()
+                    money.num_money -= price * volume
+                    money.save()
+                    current_money -= price * volume
+                    hold_coin_dict[one] = volume
+
+        elif one in hold_coin_dict and lastest.trade_volume < records[1].trade_volume:
+            price = lastest.price
+            total_price = price * hold_coin_dict[one]
+            CoinTradeRecord.objects.create(
+                coin=coin, price=price, trade_type='sell', trade_num=hold_coin_dict[one])
+            hold_coin, _ = CurrentHoldCoin.objects.get_or_create(coin=coin)
+            hold_coin.number -= hold_coin_dict[one]
+            hold_coin.save()
+            money = CurrentMoney.objects.first()
+            money.num_money += total_price
+            money.save()
+            current_money += total_price
+            hold_coin_dict.pop(one)
