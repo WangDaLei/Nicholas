@@ -60,17 +60,17 @@ def crawl_stock_daily_info():
         send_email(info)
 
 
-@periodic_task(run_every=crontab(hour=0, minute=10))
+@periodic_task(run_every=crontab(hour=1, minute=10))
 def craw_coin_from_coinmarket_task():
     craw_coin_from_coinmarket()
 
 
-@periodic_task(run_every=crontab(hour=0, minute=25))
+@periodic_task(run_every=crontab(hour=1, minute=25))
 def analysis_coin_price_based_date_task():
     analysis_coin_price_based_date()
 
 
-@periodic_task(run_every=timedelta(minutes=15))
-def crawl_real_time_price_task():
-    crawl_real_time_price()
-    sumilate_trade_real_time()
+#@periodic_task(run_every=timedelta(minutes=30))
+#def crawl_real_time_price_task():
+#    crawl_real_time_price()
+#    sumilate_trade_real_time()
