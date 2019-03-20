@@ -670,7 +670,7 @@ def analysis_coin_price_based_date():
             continue
         if one.symbol not in huobi_coin_list:
             continue
-        min_coin = CoinRecord.objects.filter(coin=one).order_by('date').first()
+        min_coin = CoinRecord.objects.filter(symbol=one.symbol).order_by('date').first()
         date_dict[one.symbol] = min_coin.date
         if min_coin.date < min_date:
             min_date = min_coin.date

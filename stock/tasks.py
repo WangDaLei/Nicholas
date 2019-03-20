@@ -65,7 +65,7 @@ def craw_coin_from_coinmarket_task():
     craw_coin_from_coinmarket()
 
 
-@periodic_task(run_every=crontab(hour=9, minute=25))
+@periodic_task(run_every=crontab(hour=10, minute=25))
 def analysis_coin_price_based_date_task():
     analysis_coin_price_based_date()
 
