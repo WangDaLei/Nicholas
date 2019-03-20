@@ -130,6 +130,7 @@ class CoinRecord(models.Model):
 
     class Meta:
         unique_together = ('coin', 'date')
+        index_together = ("symbol", "date")
 
 
 class RealTimeRecord(models.Model):

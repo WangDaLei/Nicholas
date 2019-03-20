@@ -14,6 +14,8 @@ app = Celery('stock_tasks')
 #   should have a `CELERY_` prefix.
 app.config_from_object('django.conf:settings')
 
+app.conf.timezone = 'Asia/Shanghai'
+app.conf.update(enable_utc=False)
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 

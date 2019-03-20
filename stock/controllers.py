@@ -558,7 +558,7 @@ def craw_coin_from_coinmarket():
     """
     all_coin_url = "https://s2.coinmarketcap.com/generated/search/quick_search.json"
     coin_trade_record_url = "https://coinmarketcap.com/currencies/%s/historical-data/" +\
-                            "?start=20190101&end=20300101"
+                            "?start=%s&end=%s"
 
     req = requests.get(all_coin_url)
     res_list = json.loads(req.content)
@@ -577,7 +577,9 @@ def craw_coin_from_coinmarket():
     for one in coins:
         print(one.symbol)
         slug = one.slug
-        url = coin_trade_record_url % (slug)
+        date_start = (datetime.today() + timedelta(days=-20)).strftime("%Y-%m-%d").replace('-', '')
+        date_end = (datetime.today() + timedelta(days=10)).strftime("%Y-%m-%d").replace('-', '')
+        url = coin_trade_record_url % (slug, date_start, date_end)
         req = requests.get(url)
         sel = Selector(text=req.content)
         name_list = sel.xpath(
@@ -595,7 +597,7 @@ def craw_coin_from_coinmarket():
             dollar_volume = get_num_from_str(name_list[i * 7 + 5])
             market_cap = get_num_from_str(name_list[i * 7 + 6])
 
-            coin_record = CoinRecord.objects.filter(coin=one, date=date)
+            coin_record = CoinRecord.objects.filter(symbol=one.symbol, date=date)
             if not coin_record:
                 CoinRecord.objects.create(
                     coin=one, date=date, symbol=one.symbol, open_price=open_price,
