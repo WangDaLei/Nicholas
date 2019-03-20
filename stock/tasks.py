@@ -1,20 +1,16 @@
-# coding=utf-8
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import os
-# from celery import shared_task
-from datetime import timedelta
-from celery.decorators import periodic_task
-from celery.task.schedules import crontab
 from .controllers import \
     get_stock_info, get_capital_amount,\
     get_finance, get_bonus_allot, send_email,\
     crawl_block_from_CSRC, parse_CRSC_PDF,\
     repair_json_files, update_block, get_trade_amount_sum,\
     crawl_index_from_sohu, craw_coin_from_coinmarket,\
-    analysis_coin_price_based_date, crawl_real_time_price,\
-    sumilate_trade_real_time
+    analysis_coin_price_based_date
 
 
-@periodic_task(run_every=crontab(hour=15, minute=35))
+@shared_task
 def crawl_stock_daily_info():
     os.system('cd stock_spider && scrapy crawl stock_info_spider')
 
@@ -60,17 +56,11 @@ def crawl_stock_daily_info():
         send_email(info)
 
 
-@periodic_task(run_every=crontab(hour=9, minute=10))
+@shared_task
 def craw_coin_from_coinmarket_task():
     craw_coin_from_coinmarket()
 
 
-@periodic_task(run_every=crontab(hour=10, minute=25))
+@shared_task
 def analysis_coin_price_based_date_task():
     analysis_coin_price_based_date()
-
-
-#@periodic_task(run_every=timedelta(minutes=30))
-#def crawl_real_time_price_task():
-#    crawl_real_time_price()
-#    sumilate_trade_real_time()

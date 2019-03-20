@@ -704,7 +704,7 @@ def analysis_coin_price_based_date():
             str1 += key + ":" + str(round(coin_dict[key], 2)) + ' '
         output_str += str(str(min_date) + " " + str(round(total, 2)) + " " + str1 + '\n')
         min_date += timedelta(days=1)
-    send_email(output_str)
+    send_email(output_str, title='Coin Information.')
 
 
 def crawl_real_time_price():
