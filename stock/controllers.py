@@ -842,4 +842,3 @@ def crawl_stock_price():
 
         stock_one.price = stock_info['price']
         stock_one.save()
-        print(stock_info)

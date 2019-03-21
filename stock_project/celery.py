@@ -25,6 +25,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(hour=15, minute=35),
         'args': ()
     },
+    'crawl_stock_price_task': {
+        'task': 'stock.tasks.crawl_stock_price_task',
+        'schedule': crontab(hour=15, minute=40),
+        'args': ()
+    },
     'craw_coin_from_coinmarket_task': {
         'task': 'stock.tasks.craw_coin_from_coinmarket_task',
         'schedule': crontab(hour=9, minute=10),

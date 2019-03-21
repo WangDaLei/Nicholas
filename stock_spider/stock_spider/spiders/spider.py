@@ -83,13 +83,13 @@ class StochBlockSpider(scrapy.Spider):
             url_equity = "http://vip.stock.finance.sina.com.cn/corp/go.php/vCI_StockStructure/stockid/%s.phtml"%(str(one))
             yield scrapy.Request(url_equity, self.parse_equity)
             
-            if one.startswith("6"):
-                s = "sh" + one
-            else:
-                s = "sz" + one
-            time_stamp = self.get_time_stamp()
-            url_price = "http://hq.sinajs.cn/rn=%s&list=%s"%(str(time_stamp), str(s))
-            yield scrapy.Request(url_price, self.parse_price)
+            # if one.startswith("6"):
+            #     s = "sh" + one
+            # else:
+            #     s = "sz" + one
+            # time_stamp = self.get_time_stamp()
+            # url_price = "http://hq.sinajs.cn/rn=%s&list=%s"%(str(time_stamp), str(s))
+            # yield scrapy.Request(url_price, self.parse_price)
 
     def parse_block(self, response):
 

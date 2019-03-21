@@ -7,7 +7,7 @@ from .controllers import \
     crawl_block_from_CSRC, parse_CRSC_PDF,\
     repair_json_files, update_block, get_trade_amount_sum,\
     crawl_index_from_sohu, craw_coin_from_coinmarket,\
-    analysis_coin_price_based_date
+    analysis_coin_price_based_date, crawl_stock_price
 
 
 @shared_task
@@ -17,6 +17,11 @@ def crawl_block_from_CSRC_task():
         parse_CRSC_PDF(date, name)
         repair_json_files(date)
         update_block(date)
+
+
+@shared_task
+def crawl_stock_price_task():
+    crawl_stock_price()
 
 
 @shared_task
