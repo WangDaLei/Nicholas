@@ -829,4 +829,17 @@ def crawl_stock_price():
         stock_info['code'] = code
         stock_info['status'] = status
         stock_info['price'] = price
+
+        stock_one, _ = StockInfo.objects.get_or_create(code=stock_info['code'])
+
+        if stock_one.status != stock_info['status']:
+            ChangeHistory.objects.create(
+                stock=stock, change_source=stock_one.status,
+                change_target=stock_info['status'], field='status',
+                generated_time=date.today())
+            stock_one.status = stock_info['status']
+            stock_info.save()
+
+        stock_one.price = stock_info['price']
+        stock_info.save()
         print(stock_info)
