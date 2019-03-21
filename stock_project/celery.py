@@ -32,7 +32,12 @@ app.conf.beat_schedule = {
     },
     'analysis_coin_price_based_date_task': {
         'task': 'stock.tasks.analysis_coin_price_based_date_task',
-        'schedule': crontab(hour=10, minute=25),
+        'schedule': crontab(hour=9, minute=25),
+        'args': ()
+    },
+    'crawl_block_from_CSRC_task': {
+        'task': 'stock.tasks.crawl_block_from_CSRC_task',
+        'schedule': crontab(hour=12, minute=1),
         'args': ()
     },
     # 'check_new_subscriber': {

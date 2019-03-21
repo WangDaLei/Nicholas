@@ -11,14 +11,17 @@ from .controllers import \
 
 
 @shared_task
-def crawl_stock_daily_info():
-    os.system('cd stock_spider && scrapy crawl stock_info_spider')
-
+def crawl_block_from_CSRC_task():
     re, date, name = crawl_block_from_CSRC()
     if re:
         parse_CRSC_PDF(date, name)
         repair_json_files(date)
         update_block(date)
+
+
+@shared_task
+def crawl_stock_daily_info():
+    os.system('cd stock_spider && scrapy crawl stock_info_spider')
 
     crawl_index_from_sohu()
 
@@ -47,13 +50,13 @@ def crawl_stock_daily_info():
         info_list.append(info)
 
     if info_list:
-        send_email('\n'.join(info_list))
+        send_email('\n'.join(info_list), title='Stock Infomation Changes')
 
     os.system('cd stock_spider && scrapy crawl stock_trade_record_task_spider')
 
     info = get_trade_amount_sum()
     if info:
-        send_email(info)
+        send_email(info, title='Stock Analysis')
 
 
 @shared_task
