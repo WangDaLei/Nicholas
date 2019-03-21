@@ -580,29 +580,33 @@ def craw_coin_from_coinmarket():
         date_start = (datetime.today() + timedelta(days=-20)).strftime("%Y-%m-%d").replace('-', '')
         date_end = (datetime.today() + timedelta(days=10)).strftime("%Y-%m-%d").replace('-', '')
         url = coin_trade_record_url % (slug, date_start, date_end)
-        req = requests.get(url)
-        sel = Selector(text=req.content)
-        name_list = sel.xpath(
-            '//div[re:test(@class, "table-responsive")]/' +
-            'table[re:test(@class, "table")]/tbody/tr[re:test(@class, "text-right")]/td//text()')\
-            .extract()
-        lenth = len(name_list) // 7
+        try:
+            req = requests.get(url)
+            sel = Selector(text=req.content)
+            name_list = sel.xpath(
+                '//div[re:test(@class, "table-responsive")]/' +
+                'table[re:test(@class, "table")]/tbody/tr' +
+                '[re:test(@class, "text-right")]/td//text()')\
+                .extract()
+            lenth = len(name_list) // 7
 
-        for i in range(lenth):
-            date = get_date_from_str(name_list[i * 7])
-            open_price = get_num_from_str(name_list[i * 7 + 1])
-            high_price = get_num_from_str(name_list[i * 7 + 2])
-            low_price = get_num_from_str(name_list[i * 7 + 3])
-            close_price = get_num_from_str(name_list[i * 7 + 4])
-            dollar_volume = get_num_from_str(name_list[i * 7 + 5])
-            market_cap = get_num_from_str(name_list[i * 7 + 6])
+            for i in range(lenth):
+                date = get_date_from_str(name_list[i * 7])
+                open_price = get_num_from_str(name_list[i * 7 + 1])
+                high_price = get_num_from_str(name_list[i * 7 + 2])
+                low_price = get_num_from_str(name_list[i * 7 + 3])
+                close_price = get_num_from_str(name_list[i * 7 + 4])
+                dollar_volume = get_num_from_str(name_list[i * 7 + 5])
+                market_cap = get_num_from_str(name_list[i * 7 + 6])
 
-            coin_record = CoinRecord.objects.filter(symbol=one.symbol, date=date)
-            if not coin_record:
-                CoinRecord.objects.create(
-                    coin=one, date=date, symbol=one.symbol, open_price=open_price,
-                    hignest_price=high_price, lowest_price=low_price, close_price=close_price,
-                    trade_volume=dollar_volume, market_cap=market_cap)
+                coin_record = CoinRecord.objects.filter(symbol=one.symbol, date=date)
+                if not coin_record:
+                    CoinRecord.objects.create(
+                        coin=one, date=date, symbol=one.symbol, open_price=open_price,
+                        hignest_price=high_price, lowest_price=low_price, close_price=close_price,
+                        trade_volume=dollar_volume, market_cap=market_cap)
+        except Exception as e:
+            print(e)
 
 
 def analysis_coin_price_based_coin():
