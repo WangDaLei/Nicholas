@@ -838,8 +838,8 @@ def crawl_stock_price():
                 change_target=stock_info['status'], field='status',
                 generated_time=date.today())
             stock_one.status = stock_info['status']
-            stock_info.save()
+            stock_one.save()
 
         stock_one.price = stock_info['price']
-        stock_info.save()
+        stock_one.save()
         print(stock_info)
