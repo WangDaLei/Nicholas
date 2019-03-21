@@ -797,5 +797,36 @@ def crawl_stock_price():
         time_stamp = (int(round(time.time() * 1000)))
         url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(s))
         req = requests.get(url_price)
-        print(req.status_code)
-        print(req.text)
+
+        stock = req.text
+        sset = stock.strip().split("=")
+
+        code = str(sset[0].split("_")[-1][2:])
+        sign = sset[1].split(",")[-1].split('"')[0]
+        today = sset[1].split(",")[3]
+        yesterday = sset[1].split(",")[2]
+
+        status = ""
+        price = 0.0
+
+        if sign == "-3":
+            status = "退市"
+            price = 0.0
+        elif sign == "-2":
+            status = "未上市"
+            price = 0.0
+        elif sign == "03":
+            status = "停牌"
+            price = float(yesterday)
+        elif sign == "00":
+            status = "正常"
+            price = float(today)
+        else:
+            status = "未知错误"
+            price = 0.0
+
+        stock_info = {}
+        stock_info['code'] = code
+        stock_info['status'] = status
+        stock_info['price'] = price
+        print(stock_info)
