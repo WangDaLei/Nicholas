@@ -3,6 +3,7 @@ import os
 import re
 import json
 import copy
+import time
 
 from datetime import datetime, date, timedelta
 import requests
@@ -781,3 +782,20 @@ def sumilate_trade_real_time():
             money.save()
             current_money += total_price
             hold_coin_dict.pop(one)
+
+
+def crawl_stock_price():
+    stock_set = StockInfo.objects.all()
+    all_stock_code = []
+    for one in stock_set:
+        all_stock_code.append(one.code)
+    for one in all_stock_code:
+        if one.startswith("6"):
+            s = "sh" + one
+        else:
+            s = "sz" + one
+        time_stamp = (int(round(time.time() * 1000)))
+        url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(s))
+        req = requests.get(url_price)
+        print(req.status_code)
+        print(req.text)
