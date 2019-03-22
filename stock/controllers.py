@@ -834,7 +834,7 @@ def crawl_stock_price():
 
         if stock_one.status != stock_info['status']:
             ChangeHistory.objects.create(
-                stock=stock, change_source=stock_one.status,
+                stock=stock_one, change_source=stock_one.status,
                 change_target=stock_info['status'], field='status',
                 generated_time=date.today())
             stock_one.status = stock_info['status']
