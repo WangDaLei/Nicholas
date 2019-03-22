@@ -790,55 +790,59 @@ def crawl_stock_price():
     for one in stock_set:
         all_stock_code.append(one.code)
     for one in all_stock_code:
-        if one.startswith("6"):
-            s = "sh" + one
-        else:
-            s = "sz" + one
-        time_stamp = (int(round(time.time() * 1000)))
-        url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(s))
-        req = requests.get(url_price)
+        try:
+            print(one)
+            if one.startswith("6"):
+                s = "sh" + one
+            else:
+                s = "sz" + one
+            time_stamp = (int(round(time.time() * 1000)))
+            url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(s))
+            req = requests.get(url_price)
 
-        stock = req.text
-        sset = stock.strip().split("=")
+            stock = req.text
+            sset = stock.strip().split("=")
 
-        code = str(sset[0].split("_")[-1][2:])
-        sign = sset[1].split(",")[-1].split('"')[0]
-        today = sset[1].split(",")[3]
-        yesterday = sset[1].split(",")[2]
+            code = str(sset[0].split("_")[-1][2:])
+            sign = sset[1].split(",")[-1].split('"')[0]
+            today = sset[1].split(",")[3]
+            yesterday = sset[1].split(",")[2]
 
-        status = ""
-        price = 0.0
-
-        if sign == "-3":
-            status = "退市"
-            price = 0.0
-        elif sign == "-2":
-            status = "未上市"
-            price = 0.0
-        elif sign == "03":
-            status = "停牌"
-            price = float(yesterday)
-        elif sign == "00":
-            status = "正常"
-            price = float(today)
-        else:
-            status = "未知错误"
+            status = ""
             price = 0.0
 
-        stock_info = {}
-        stock_info['code'] = code
-        stock_info['status'] = status
-        stock_info['price'] = price
+            if sign == "-3":
+                status = "退市"
+                price = 0.0
+            elif sign == "-2":
+                status = "未上市"
+                price = 0.0
+            elif sign == "03":
+                status = "停牌"
+                price = float(yesterday)
+            elif sign == "00":
+                status = "正常"
+                price = float(today)
+            else:
+                status = "未知错误"
+                price = 0.0
 
-        stock_one, _ = StockInfo.objects.get_or_create(code=stock_info['code'])
+            stock_info = {}
+            stock_info['code'] = code
+            stock_info['status'] = status
+            stock_info['price'] = price
 
-        if stock_one.status != stock_info['status']:
-            ChangeHistory.objects.create(
-                stock=stock_one, change_source=stock_one.status,
-                change_target=stock_info['status'], field='status',
-                generated_time=date.today())
-            stock_one.status = stock_info['status']
+            stock_one, _ = StockInfo.objects.get_or_create(code=stock_info['code'])
+
+            if stock_one.status != stock_info['status']:
+                ChangeHistory.objects.create(
+                    stock=stock_one, change_source=stock_one.status,
+                    change_target=stock_info['status'], field='status',
+                    generated_time=date.today())
+                stock_one.status = stock_info['status']
+                stock_one.save()
+
+            stock_one.price = stock_info['price']
             stock_one.save()
-
-        stock_one.price = stock_info['price']
-        stock_one.save()
+        except Exception as e:
+            print(e)
