@@ -1,3 +1,6 @@
+from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord
+from django.db.models import Max
+
 
 def get_covariance(x, y):
     avg_x = sum(x) / len(x)
@@ -10,7 +13,6 @@ def get_covariance(x, y):
 
 
 def get_standard_deviation(x):
-	""""""
     avg_x = sum(x) / len(x)
     sum_all = 0.0
     for i in range(len(x)):
@@ -36,3 +38,37 @@ def get_unarg_parameter(x, y):
     b0 = avg_y - b1 * avg_x
 
     return round(b1, 4), round(b0, 4)
+
+
+def get_capital_by_date(symbol, date):
+    try:
+        capital = CapitalStockAmountHistory.objects.filter(change_date_le=date)\
+            .order_by('-change_date').first()
+        if capital:
+            capital = capital.num
+        else:
+            stock = StockInfo.objects.get(code=symbol)
+            capital = stock.equity
+        price = TradeRecord.objects.get(code=symbol, date=date).close_price()
+        total = price * capital
+        return total
+    except Exception as e:
+        print(e)
+        return 0
+
+
+def get_increase_by_block():
+    blocks = StockInfo.objects.exclude(block='').values_list('block').distinct()
+    max_date = TradeRecord.objects.aggregate(Max('date'))
+    max2_date = TradeRecord.objects.exclude(date=max_date).aggregate(Max('date'))
+    for block in blocks:
+        block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
+        sum_block = 0.0
+        for one in block_stocks:
+            capital = get_capital_by_date(one.code, max_date)
+            sum_block += capital
+        sum2_block = 0.0
+        for one in block_stocks:
+            capital = get_capital_by_date(one.code, max2_date)
+            sum2_block += capital
+        print(block, sum_block, sum2_block, round(sum_block / sum2_block, 2), '\n')
