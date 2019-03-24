@@ -1,3 +1,4 @@
+from datetime import timedelta
 from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord
 from django.db.models import Max
 
@@ -42,14 +43,14 @@ def get_unarg_parameter(x, y):
 
 def get_capital_by_date(symbol, date):
     try:
-        capital = CapitalStockAmountHistory.objects.filter(change_date_le=date)\
+        capital = CapitalStockAmountHistory.objects.filter(change_date__lte=date)\
             .order_by('-change_date').first()
         if capital:
             capital = capital.num
         else:
             stock = StockInfo.objects.get(code=symbol)
             capital = stock.equity
-        price = TradeRecord.objects.get(code=symbol, date=date).close_price()
+        price = TradeRecord.objects.get(code=symbol, date=date).close_price
         total = price * capital
         return total
     except Exception as e:
@@ -60,8 +61,14 @@ def get_capital_by_date(symbol, date):
 def get_increase_by_block():
     blocks = StockInfo.objects.exclude(block='').values_list('block').distinct()
     max_date = TradeRecord.objects.aggregate(Max('date'))
-    max2_date = TradeRecord.objects.exclude(date=max_date).aggregate(Max('date'))
+    max2_date = TradeRecord.objects.exclude(date=max_date['date__max']).aggregate(Max('date'))
+    max_date = max_date['date__max']
+    max2_date = max2_date['date__max']
+    print(max_date)
+    print(max2_date)
+    max_date = max2_date + timedelta(days=-1)
     for block in blocks:
+        block = block[0]
         block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
         sum_block = 0.0
         for one in block_stocks:
@@ -71,4 +78,5 @@ def get_increase_by_block():
         for one in block_stocks:
             capital = get_capital_by_date(one.code, max2_date)
             sum2_block += capital
-        print(block, sum_block, sum2_block, round(sum_block / sum2_block, 2), '\n')
+        percent = round(sum_block / sum2_block, 6) if sum2_block else 0
+        print(block, sum_block, sum2_block, percent, '\n')
