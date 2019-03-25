@@ -91,7 +91,7 @@ def get_increase_by_block():
     shang_index = IndexRecord.objects.filter(name='上证指数', date=max_date).first()
     shang_index2 = IndexRecord.objects.filter(name='上证指数', date=max2_date).first()
     if shang_index and shang_index2:
-        index = round((shang_index.close_index / shang_index2.close_index - 1) * 100, 2)
+        index = round((shang_index.close_index / shang_index2.close_index - 1) * 100, 4)
     else:
         index = 0
     block_dict = {k: round(100 * (v - 1), 2) for k, v in block_dict.items() if v > 0.5}
@@ -100,6 +100,18 @@ def get_increase_by_block():
 
     top_dict = sorted_dict[:5]
     low_dict = sorted_dict[-5:]
+    print("Index: ", index)
     print("Top5: ", top_dict)
     print("Low5: ", low_dict)
-    print("Index: ", index)
+    top_stocks = {}
+    low_stocks = {}
+    for one in top_dict:
+        stock_list = StockInfo.objects.filter(
+            status__in=['正常', '停牌'], block=one.key()).values_list('name', 'code')
+        top_stocks[one.key()] = stock_list
+    for one in low_dict:
+        stock_list = StockInfo.objects.filter(
+            status__in=['正常', '停牌'], block=one.key()).values_list('name', 'code')
+        low_stocks[one.key()] = stock_list
+    print(top_stocks)
+    print(low_stocks)
