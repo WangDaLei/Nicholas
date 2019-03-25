@@ -103,8 +103,12 @@ def get_increase_by_block():
     low_dict = [(one[0], str(one[1]) + '%') for one in low_dict]
 
     str_all = "## Shang Index: " + str(index) + '%\n'
-    str_all += "## Top5: " + str(top_dict) + "\n"
-    str_all += "## Low5: " + str(low_dict) + "\n"
+    str_all += "## Top5: \n"
+    for one in top_dict:
+        str_all += "### " + str(one[0]) + ": " + str(one[1]) + '\n'
+    str_all += "## Low5: \n"
+    for one in low_dict:
+        str_all += "### " + str(one[0]) + ": " + str(one[1]) + '\n'
     top_stocks = {}
     low_stocks = {}
     for one in top_dict:
@@ -115,7 +119,20 @@ def get_increase_by_block():
         stock_list = StockInfo.objects.filter(
             status__in=['正常', '停牌'], block=one[0]).values_list('name', 'code')
         low_stocks[one[0]] = stock_list
-    str_all += "## Top stocks: " + str(top_stocks) + "\n"
-    str_all += "## Low stocks: " + str(low_stocks) + "\n"
+    str_all += "## Top stocks: \n" + str(top_stocks) + "\n"
+    for one in top_stocks:
+        str_all += "### " + str(one) + ": "
+        str_value = []
+        for one in top_stocks[one]:
+            str_value .append(':'.join(one))
+        str_all += '  '.join(str_value) + '\n'
+
+    str_all += "## Low stocks: \n" + str(low_stocks) + "\n"
+    for one in low_stocks:
+        str_all += "### " + str(one) + ": "
+        str_value = []
+        for one in low_stocks[one]:
+            str_value .append(':'.join(one))
+        str_all += '  '.join(str_value) + '\n'
     send_email(str_all, title='Block by Index')
     return str_all
