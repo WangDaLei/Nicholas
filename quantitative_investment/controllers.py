@@ -43,7 +43,7 @@ def get_unarg_parameter(x, y):
 
 def get_capital_by_date(symbol, date):
     try:
-        capital = CapitalStockAmountHistory.objects.filter(change_date__lte=date)\
+        capital = CapitalStockAmountHistory.objects.filter(code=symbol, change_date__lte=date)\
             .order_by('-change_date').first()
         if capital:
             capital = capital.num
@@ -68,15 +68,23 @@ def get_increase_by_block():
     print(max2_date)
     max_date = max2_date + timedelta(days=-1)
     for block in blocks:
+        code_list1 = []
+        code_list2 = []
+        capital_list1 = []
+        capital_list2 = []
         block = block[0]
         block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
         sum_block = 0.0
         for one in block_stocks:
+            code_list1.append(one.code)
             capital = get_capital_by_date(one.code, max_date)
+            capital_list1.append(round(capital, 2))
             sum_block += capital
         sum2_block = 0.0
         for one in block_stocks:
+            code_list2.append(one.code)
             capital = get_capital_by_date(one.code, max2_date)
+            capital_list2.append(round(capital, 2))
             sum2_block += capital
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
         print(block, sum_block, sum2_block, percent, '\n')
