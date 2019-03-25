@@ -49,7 +49,12 @@ def get_capital_by_date(symbol, date):
         else:
             stock = StockInfo.objects.get(code=symbol)
             capital = stock.equity
-        price = TradeRecord.objects.filter(code=symbol, date__lte=date).first().close_price
+        price = TradeRecord.objects.filter(code=symbol, date__lte=date)\
+            .order_by('-date').first()
+        if price:
+            price = price.close_price
+        else:
+            price = 0
         total = price * capital
         return total
     except Exception as e:
@@ -77,4 +82,4 @@ def get_increase_by_block():
             capital = get_capital_by_date(one.code, max2_date)
             sum2_block += capital
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
-        print(block, sum_block, sum2_block, percent, '\n')
+        print(block, sum_block, sum2_block, percent)
