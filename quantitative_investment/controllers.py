@@ -1,5 +1,6 @@
 from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord, IndexRecord
 from django.db.models import Max
+from stock.controllers import send_email
 
 
 def get_covariance(x, y):
@@ -100,9 +101,10 @@ def get_increase_by_block():
     low_dict = sorted_dict[-5:]
     top_dict = [(one[0], str(one[1]) + '%') for one in top_dict]
     low_dict = [(one[0], str(one[1]) + '%') for one in low_dict]
-    print("Index: ", index)
-    print("Top5: ", top_dict)
-    print("Low5: ", low_dict)
+
+    str_all = "## Shang Index: " + str(index) + '%\n'
+    str_all += "## Top5: " + str(top_dict) + "\n"
+    str_all += "## Low5: " + str(low_dict) + "\n"
     top_stocks = {}
     low_stocks = {}
     for one in top_dict:
@@ -113,5 +115,7 @@ def get_increase_by_block():
         stock_list = StockInfo.objects.filter(
             status__in=['正常', '停牌'], block=one[0]).values_list('name', 'code')
         low_stocks[one[0]] = stock_list
-    print(top_stocks)
-    print(low_stocks)
+    str_all += "## Top stocks: " + str(top_stocks) + "\n"
+    str_all += "## Low stocks: " + str(low_stocks) + "\n"
+    send_email(str_all, title='Block by Index')
+    return str_all

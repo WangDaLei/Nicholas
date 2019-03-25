@@ -8,6 +8,7 @@ from .controllers import \
     repair_json_files, update_block, get_trade_amount_sum,\
     crawl_index_from_sohu, craw_coin_from_coinmarket,\
     analysis_coin_price_based_date, crawl_stock_price
+from quantitative_investment.controllers import get_increase_by_block
 
 
 @shared_task
@@ -60,6 +61,7 @@ def crawl_stock_daily_info():
     os.system('cd stock_spider && scrapy crawl stock_trade_record_task_spider')
 
     info = get_trade_amount_sum()
+    info += get_increase_by_block()
     if info:
         send_email(info, title='Stock Analysis')
 
