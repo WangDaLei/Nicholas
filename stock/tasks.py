@@ -60,10 +60,11 @@ def crawl_stock_daily_info():
 
     os.system('cd stock_spider && scrapy crawl stock_trade_record_task_spider')
 
-    info = get_trade_amount_sum()
-    info += get_increase_by_block()
+    info = get_increase_by_block()
+    info += get_trade_amount_sum()
+
     if info:
-        send_email(info, title='Stock Analysis')
+        send_email(info, title='Stock Analysis By Block')
 
 
 @shared_task
