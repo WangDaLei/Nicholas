@@ -1,4 +1,4 @@
-from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord
+from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord, IndexRecord
 from django.db.models import Max
 
 
@@ -88,5 +88,15 @@ def get_increase_by_block():
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
         block_dict[block] = percent
         print(block, sum_block, sum2_block, percent)
-    sorted_dict = sorted(block_dict.items(), key=lambda item: item[1])
+    shang_index = IndexRecord.objects.filter(name='上证指数', date=max_date).first()
+    shang_index2 = IndexRecord.objects.filter(name='上证指数', date=max2_date).first()
+    index = round((shang_index / shang_index2 - 1) * 100, 2)
+    block_dict = {k: round(100 * (v - 1), 2) for k, v in block_dict.items() if v > 0.5}
+    sorted_dict = sorted(block_dict.items(), key=lambda item: -1 * item[1])
     print(sorted_dict)
+
+    top_dict = sorted_dict[:5]
+    low_dict = sorted_dict[-5:]
+    print(top_dict)
+    print(low_dict)
+    print(index)
