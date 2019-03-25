@@ -49,7 +49,7 @@ def get_capital_by_date(symbol, date):
         else:
             stock = StockInfo.objects.get(code=symbol)
             capital = stock.equity
-        price = TradeRecord.objects.filter(code=symbol, date_lte=date).first().close_price
+        price = TradeRecord.objects.filter(code=symbol, date__lte=date).first().close_price
         total = price * capital
         return total
     except Exception as e:
