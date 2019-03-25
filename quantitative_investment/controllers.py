@@ -71,8 +71,7 @@ def get_increase_by_block():
     max2_date = TradeRecord.objects.exclude(date=max_date['date__max']).aggregate(Max('date'))
     max_date = max_date['date__max']
     max2_date = max2_date['date__max']
-    print(max_date)
-    print(max2_date)
+    block_dict = {}
     for block in blocks:
         block = block[0]
         block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
@@ -87,4 +86,7 @@ def get_increase_by_block():
                 capital = get_capital_by_date(one.code, max_date, 0)
             sum2_block += capital
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
+        block_dict[block] = percent
         print(block, sum_block, sum2_block, percent)
+    sorted_dict = sorted(block_dict.items(), key=lambda item: item[1])
+    print(sorted_dict)
