@@ -72,9 +72,7 @@ def get_increase_by_block():
     max_date = max_date['date__max']
     max2_date = max2_date['date__max']
     block_dict = {}
-    count = 0
     for block in blocks:
-        count += 1
         block = block[0]
         block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
         sum_block = 0.0
@@ -90,8 +88,6 @@ def get_increase_by_block():
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
         block_dict[block] = percent
         print(block, sum_block, sum2_block, percent)
-        if count == 11:
-            break
     shang_index = IndexRecord.objects.filter(name='上证指数', date=max_date).first()
     shang_index2 = IndexRecord.objects.filter(name='上证指数', date=max2_date).first()
     if shang_index and shang_index2:
@@ -104,6 +100,6 @@ def get_increase_by_block():
 
     top_dict = sorted_dict[:5]
     low_dict = sorted_dict[-5:]
-    print(top_dict)
-    print(low_dict)
-    print(index)
+    print("Top5: ", top_dict)
+    print("Low5: ", low_dict)
+    print("Index: ", index)
