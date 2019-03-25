@@ -93,11 +93,13 @@ def get_increase_by_block():
         index = round((shang_index.close_index / shang_index2.close_index - 1) * 100, 4)
     else:
         index = 0
-    block_dict = {k: str(round(100 * (v - 1), 2)) + "%" for k, v in block_dict.items() if v > 0.5}
+    block_dict = {k: round(100 * (v - 1), 2) for k, v in block_dict.items() if v > 0.5}
     sorted_dict = sorted(block_dict.items(), key=lambda item: -1 * item[1])
 
     top_dict = sorted_dict[:5]
     low_dict = sorted_dict[-5:]
+    top_dict = {k: str(v) + '%' for k, v in top_dict.items()}
+    low_dict = {k: str(v) + '%' for k, v in low_dict.items()}
     print("Index: ", index)
     print("Top5: ", top_dict)
     print("Low5: ", low_dict)
