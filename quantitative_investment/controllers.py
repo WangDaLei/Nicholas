@@ -40,7 +40,7 @@ def get_unarg_parameter(x, y):
     return round(b1, 4), round(b0, 4)
 
 
-def get_capital_by_date(symbol, date):
+def get_capital_by_date(symbol, date, close_price=1):
     try:
         capital = CapitalStockAmountHistory.objects.filter(code=symbol, change_date__lte=date)\
             .order_by('-change_date').first()
@@ -52,7 +52,10 @@ def get_capital_by_date(symbol, date):
         price = TradeRecord.objects.filter(code=symbol, date__lte=date)\
             .order_by('-date').first()
         if price:
-            price = price.close_price
+            if close_price:
+                price = price.close_price
+            else:
+                price = price.open_price
         else:
             price = 0
         total = price * capital
@@ -80,6 +83,8 @@ def get_increase_by_block():
         sum2_block = 0.0
         for one in block_stocks:
             capital = get_capital_by_date(one.code, max2_date)
+            if not capital:
+                capital = get_capital_by_date(one.code, max_date, 0)
             sum2_block += capital
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
         print(block, sum_block, sum2_block, percent)
