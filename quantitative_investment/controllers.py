@@ -1,4 +1,3 @@
-from datetime import timedelta
 from stock.models import StockInfo, CapitalStockAmountHistory, TradeRecord
 from django.db.models import Max
 
@@ -50,7 +49,7 @@ def get_capital_by_date(symbol, date):
         else:
             stock = StockInfo.objects.get(code=symbol)
             capital = stock.equity
-        price = TradeRecord.objects.get(code=symbol, date=date).close_price
+        price = TradeRecord.objects.filter(code=symbol, date_lte=date).first().close_price
         total = price * capital
         return total
     except Exception as e:
@@ -66,25 +65,16 @@ def get_increase_by_block():
     max2_date = max2_date['date__max']
     print(max_date)
     print(max2_date)
-    max_date = max2_date + timedelta(days=-1)
     for block in blocks:
-        code_list1 = []
-        code_list2 = []
-        capital_list1 = []
-        capital_list2 = []
         block = block[0]
         block_stocks = StockInfo.objects.filter(status__in=['正常', '停牌'], block=block)
         sum_block = 0.0
         for one in block_stocks:
-            code_list1.append(one.code)
             capital = get_capital_by_date(one.code, max_date)
-            capital_list1.append(round(capital, 2))
             sum_block += capital
         sum2_block = 0.0
         for one in block_stocks:
-            code_list2.append(one.code)
             capital = get_capital_by_date(one.code, max2_date)
-            capital_list2.append(round(capital, 2))
             sum2_block += capital
         percent = round(sum_block / sum2_block, 6) if sum2_block else 0
         print(block, sum_block, sum2_block, percent, '\n')
