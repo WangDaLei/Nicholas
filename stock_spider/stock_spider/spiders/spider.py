@@ -736,3 +736,40 @@ class StockTradeRecordTaskSpider(scrapy.Spider):
             else:
                 item['trade_amount'] = stock.strip()
                 yield item
+
+class TestSpider(scrapy.Spider):
+    name = "test_spider"
+
+    start_url = [
+        "http://beemp3s.org/artists/"
+    ]
+
+    name_list = []
+
+    a = ord('a')
+    for i in range(26):
+        c = chr(a + i)
+        name_list.append(c)
+
+    a = ord('0')
+    for i in range(10):
+        c = chr(a + i)
+        name_list.append(c)
+
+    name_list = ['a']
+
+    def start_requests(self):
+        for url_base in self.start_url:
+            for name in self.name_list:
+                url = url_base + name
+                yield SplashRequest(url, self.parse_artist, args={'wait': 3})
+
+    def parse_artist(self, response):
+        print("+++++")
+        sel = Selector(response)
+        popular_artist_list = sel.xpath(
+            '//div[re:test(@class,"container bg_yellow padding_20px")]' +
+            '/div[re:test(@class,"row margin-bottom30")]/div//text()'
+        ).extract()
+        for one in popular_artist_list:
+            print(one)
