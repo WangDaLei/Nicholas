@@ -784,65 +784,101 @@ def sumilate_trade_real_time():
             hold_coin_dict.pop(one)
 
 
+def process_price(sset):
+    code = str(sset[0].split("_")[-1][2:])
+    if sset[1].split(",")[-1].split('"')[0].strip():
+        sign = sset[1].split(",")[-1].strip().split('"')[0]
+    else:
+        sign = sset[1].split(",")[-2].split('"')[0]
+    today = sset[1].split(",")[3]
+    yesterday = sset[1].split(",")[2]
+
+    status = ""
+    price = 0.0
+
+    if sign == "-3":
+        status = "退市"
+        price = 0.0
+    elif sign == "-2":
+        status = "未上市"
+        price = 0.0
+    elif sign == "03":
+        status = "停牌"
+        price = float(yesterday)
+    elif sign == "00":
+        status = "正常"
+        price = float(today)
+    else:
+        status = "未知错误"
+        price = 0.0
+
+    stock_info = {}
+    stock_info['code'] = code
+    stock_info['status'] = status
+    stock_info['price'] = price
+
+    stock_one, _ = StockInfo.objects.get_or_create(code=stock_info['code'])
+
+    if stock_one.status != stock_info['status']:
+        ChangeHistory.objects.create(
+            stock=stock_one, change_source=stock_one.status,
+            change_target=stock_info['status'], field='status',
+            generated_time=date.today())
+        stock_one.status = stock_info['status']
+        stock_one.save()
+
+    stock_one.price = stock_info['price']
+    stock_one.save()
+
 def crawl_stock_price():
     stock_set = StockInfo.objects.all()
     all_stock_code = []
+    code_list = []
     for one in stock_set:
         all_stock_code.append(one.code)
     for one in all_stock_code:
-        try:
-            print(one)
-            if one.startswith("6"):
-                s = "sh" + one
-            else:
-                s = "sz" + one
+        print(one)
+        if one.startswith("6"):
+            s = "sh" + one
+            code_list.append(s)
+        else:
+            s = "sz" + one
+            if one.strip():
+                code_list.append(s)
+    
+    try:
+        count = 0
+        while count + 800 < len(code_list):
+            temp_list = code_list[count:count+800]
             time_stamp = (int(round(time.time() * 1000)))
-            url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(s))
+            url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(','.join(temp_list)))
+            print(url_price)
             req = requests.get(url_price)
 
             stock = req.text
-            sset = stock.strip().split("=")
+            sset = stock.strip().split(";")
+            count += 800
 
-            code = str(sset[0].split("_")[-1][2:])
-            sign = sset[1].split(",")[-1].split('"')[0]
-            today = sset[1].split(",")[3]
-            yesterday = sset[1].split(",")[2]
+            for line in sset:
+                if line.strip():
+                    print(line.strip())
+                    ones = line.strip().split("=")
+                    if len(line.strip().split(',')) > 10:
+                        process_price(ones)
 
-            status = ""
-            price = 0.0
+        temp_list = code_list[count:]
+        time_stamp = (int(round(time.time() * 1000)))
+        url_price = "http://hq.sinajs.cn/rn=%s&list=%s" % (str(time_stamp), str(','.join(temp_list)))
+        print(url_price)
+        req = requests.get(url_price)
 
-            if sign == "-3":
-                status = "退市"
-                price = 0.0
-            elif sign == "-2":
-                status = "未上市"
-                price = 0.0
-            elif sign == "03":
-                status = "停牌"
-                price = float(yesterday)
-            elif sign == "00":
-                status = "正常"
-                price = float(today)
-            else:
-                status = "未知错误"
-                price = 0.0
-
-            stock_info = {}
-            stock_info['code'] = code
-            stock_info['status'] = status
-            stock_info['price'] = price
-
-            stock_one, _ = StockInfo.objects.get_or_create(code=stock_info['code'])
-
-            if stock_one.status != stock_info['status']:
-                ChangeHistory.objects.create(
-                    stock=stock_one, change_source=stock_one.status,
-                    change_target=stock_info['status'], field='status',
-                    generated_time=date.today())
-                stock_one.status = stock_info['status']
-                stock_one.save()
-
-            stock_one.price = stock_info['price']
-            stock_one.save()
-        except Exception as e:
-            print(e)
+        stock = req.text
+        sset = stock.strip().split(";")
+        for line in sset:
+            if line.strip():
+                print(line.strip())
+                ones = line.strip().split("=")
+                if len(line.strip().split(',')) > 10:
+                    process_price(ones)
+    except Exception as e:
+        print(e)
